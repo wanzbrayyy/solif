@@ -24,7 +24,6 @@ module.exports = (env = {}) => {
       extensions: ['.js'],
       modules: [path.resolve(__dirname, 'src'), 'node_modules'],
       alias: {
-        // Mencegah duplicate aurelia-binding/templating issues
         'aurelia-binding': path.resolve(__dirname, 'node_modules/aurelia-binding'),
         'aurelia-templating': path.resolve(__dirname, 'node_modules/aurelia-templating')
       }
@@ -35,7 +34,6 @@ module.exports = (env = {}) => {
       open: true,
       port: 8080,
       proxy: {
-        // Mengalihkan request API dari Aurelia (8080) ke Node.js (5000)
         '/api': {
           target: 'http://localhost:5000',
           changeOrigin: true,
@@ -50,7 +48,14 @@ module.exports = (env = {}) => {
           test: /\.js$/,
           exclude: /node_modules/,
           use: {
-            loader: 'babel-loader'
+            loader: 'babel-loader',
+            options: {
+              presets: ['@babel/preset-env'],
+              plugins: [
+                ['@babel/plugin-proposal-decorators', { legacy: true }],
+                ['@babel/plugin-proposal-class-properties', { loose: true }]
+              ]
+            }
           }
         },
         {
@@ -67,11 +72,7 @@ module.exports = (env = {}) => {
           use: ['style-loader', 'css-loader']
         },
         {
-          test: /\.(png|svg|jpg|jpeg|gif)$/i,
-          type: 'asset/resource'
-        },
-        {
-          test: /\.(woff|woff2|eot|ttf|otf)$/i,
+          test: /\.(png|svg|jpg|jpeg|gif|woff|woff2|eot|ttf|otf)$/i,
           type: 'asset/resource'
         }
       ]
