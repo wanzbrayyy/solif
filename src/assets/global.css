@@ -160,3 +160,101 @@ movie-card { display: block; }
   .meta-right { width: 100%; }
   .btn-outline { width: 100%; }
 }
+/* ... CSS LAMA BIARKAN DI ATAS ... */
+
+/* =========================================
+   9. VIDEO PLAYER PAGE STYLES (UPDATED)
+   ========================================= */
+.video-layout-series { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; }
+.video-layout-movie { display: block; }
+
+.player-column { min-width: 0; }
+.episodes-column { min-width: 0; }
+
+.video-player-wrapper {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 25px;
+  border: 1px solid #222;
+}
+
+.video-player, .video-iframe {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+.no-source-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    color: #888; background: #111;
+}
+.no-source-overlay i { font-size: 4rem; margin-bottom: 1rem; }
+
+.video-info-section {
+  background: var(--bg-surface);
+  padding: 20px;
+  border-radius: var(--radius);
+  margin-bottom: 40px;
+}
+
+.video-title {
+  font-size: 24px;
+  color: var(--primary);
+  margin: 0 0 10px 0;
+}
+.video-meta-bar {
+  display: flex; gap: 15px; color: var(--text-muted);
+  font-size: 14px; margin-bottom: 15px;
+}
+.description {
+  font-size: 14px; line-height: 1.6; color: #ccc;
+  border-top: 1px solid var(--border);
+  padding-top: 15px;
+}
+
+.resolution-picker {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;
+}
+.btn-res {
+  background: #222; border: 1px solid #444; color: #fff;
+  padding: 8px 15px; border-radius: 20px; cursor: pointer;
+}
+.btn-res.active, .btn-res:hover {
+  background: var(--primary); color: #000; border-color: var(--primary);
+}
+
+.episode-list-container {
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  padding: 15px;
+  height: 500px;
+  overflow-y: auto;
+}
+.season-group h3 {
+  margin: 0 0 10px 5px; font-size: 16px; color: var(--primary);
+}
+.episode-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.btn-episode {
+  background: #333; color: #fff; border: none;
+  padding: 10px; border-radius: 5px; cursor: pointer;
+}
+.btn-episode.active, .btn-episode:hover {
+  background: var(--primary); color: #000; font-weight: bold;
+}
+
+@media (max-width: 992px) {
+  .video-layout-series {
+    grid-template-columns: 1fr; /* Stack di tablet/mobile */
+  }
+  .episodes-column {
+    order: -1; /* Pindahkan daftar episode ke atas player */
+    margin-bottom: 20px;
+  }
+}
