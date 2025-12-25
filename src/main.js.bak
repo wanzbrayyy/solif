@@ -8,7 +8,9 @@ export function configure(aurelia) {
 
   aurelia.use.developmentLogging(environment.debug ? 'debug' : 'warn');
 
-  // Kita hapus blok if(environment.testing) karena librarynya tidak diinstall
+  if (environment.testing) {
+    aurelia.use.plugin(PLATFORM.moduleName('aurelia-testing'));
+  }
 
   aurelia.start().then(() => aurelia.setRoot(PLATFORM.moduleName('app')));
 }
