@@ -2,15 +2,16 @@
    1. VARIABLES & RESET
    ========================================= */
 :root {
-  /* Color Palette - Cyber Dark */
+  /* Color Palette - Updated to Pastel Blue */
   --bg-body: #000000;       /* Hitam Pekat */
   --bg-surface: #0a0a0a;    /* Hitam Surface */
   --bg-card: #121212;       /* Warna Kartu */
   --bg-input: #1a1a1a;      /* Warna Input */
   
-  --primary: #00e5ff;       /* Cyan Neon (Warna Utama) */
-  --primary-dark: #00b8cc;  /* Cyan Gelap (Hover) */
-  --primary-glow: rgba(0, 229, 255, 0.4);
+  /* WARNA BARU SESUAI REQUEST */
+  --primary: #A9E3EA;       /* Soft Blue / Pastel */
+  --primary-dark: #A3DCE3;  /* Hover color */
+  --primary-glow: rgba(169, 227, 234, 0.4); /* Glow effect menyesuaikan warna */
   
   --text-main: #ffffff;
   --text-muted: #a0a0a0;
@@ -32,10 +33,10 @@ html, body {
   color: var(--text-main);
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden; /* Mencegah scroll samping */
+  overflow-x: hidden;
 }
 
-/* Custom Scrollbar (Biar makin ganteng) */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -73,7 +74,6 @@ ul {
 }
 
 .page-content {
-  /* Memberi jarak agar tidak tertutup Navbar Fixed */
   padding-top: calc(var(--nav-height) + 20px); 
   min-height: 100vh;
   padding-bottom: 50px;
@@ -104,8 +104,8 @@ nav-bar {
   position: fixed;
   top: 0; left: 0; right: 0;
   height: var(--nav-height);
-  background: rgba(0, 0, 0, 0.85); /* Transparan dikit */
-  backdrop-filter: blur(10px);      /* Efek Blur/Kaca */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
   z-index: 1000;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
@@ -129,7 +129,6 @@ nav-bar .nav-container {
   gap: 10px;
 }
 
-/* Search Bar di Navbar */
 .search-wrapper {
   position: relative;
   width: 100%;
@@ -170,7 +169,7 @@ nav-bar .nav-container {
 }
 
 /* =========================================
-   4. COMPONENTS: HERO SECTION (BANNER)
+   4. COMPONENTS: HERO SECTION
    ========================================= */
 .hero {
   margin-bottom: 40px;
@@ -195,7 +194,7 @@ nav-bar .nav-container {
 }
 
 .hero-card:hover .hero-bg {
-  transform: scale(1.1); /* Zoom effect dikit pas hover */
+  transform: scale(1.1);
 }
 
 .hero-overlay {
@@ -250,20 +249,16 @@ nav-bar .nav-container {
 }
 
 /* =========================================
-   5. COMPONENTS: MOVIE GRID & CARD
+   5. COMPONENTS: GRID & CARD
    ========================================= */
 .grid {
   display: grid;
-  /* Responsif: Minimal lebar kartu 180px, sisanya menyesuaikan */
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 25px;
   margin-bottom: 40px;
 }
 
-/* Movie Card Styles */
-movie-card {
-  display: block;
-}
+movie-card { display: block; }
 
 .card {
   display: block;
@@ -278,12 +273,12 @@ movie-card {
 .card:hover {
   transform: translateY(-8px);
   border-color: var(--primary);
-  box-shadow: 0 10px 20px rgba(0, 229, 255, 0.15);
+  box-shadow: 0 10px 20px rgba(169, 227, 234, 0.2); /* Adjusted shadow color */
 }
 
 .card-image-wrapper {
   position: relative;
-  padding-top: 56.25%; /* Aspect Ratio 16:9 */
+  padding-top: 56.25%;
   background: #222;
   overflow: hidden;
 }
@@ -310,19 +305,16 @@ movie-card {
   font-weight: bold;
   padding: 3px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  border: 1px solid rgba(169, 227, 234, 0.3);
 }
 
-.card-info {
-  padding: 12px;
-}
+.card-info { padding: 12px; }
 
 .card-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
   margin: 0 0 8px 0;
-  /* Limit 2 baris teks */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -342,9 +334,7 @@ movie-card {
   color: var(--text-muted);
 }
 
-.card-stats i {
-  color: var(--primary);
-}
+.card-stats i { color: var(--primary); }
 
 /* =========================================
    6. BUTTONS
@@ -364,7 +354,7 @@ movie-card {
   font-size: 14px;
   text-transform: uppercase;
   transition: 0.3s;
-  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 15px var(--primary-glow);
 }
 
 .btn:hover {
@@ -373,12 +363,10 @@ movie-card {
   transform: scale(1.05);
 }
 
-.btn-icon {
-  font-size: 18px;
-}
+.btn-icon { font-size: 18px; }
 
 /* =========================================
-   7. LOADING & EMPTY STATES
+   7. STATES & ANIMATION
    ========================================= */
 .loading-container {
   display: flex;
@@ -398,14 +386,8 @@ movie-card {
   border: 1px dashed #333;
 }
 
-.empty-state i {
-  color: #333;
-  margin-bottom: 20px;
-}
+.empty-state i { color: #333; margin-bottom: 20px; }
 
-/* =========================================
-   8. KEYFRAMES & RESPONSIVE
-   ========================================= */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -417,31 +399,11 @@ movie-card {
   100% { opacity: 0.6; }
 }
 
-/* Mobile Responsive */
 @media (max-width: 768px) {
-  .hero-card {
-    height: 300px;
-  }
-  
-  .hero-content {
-    padding-left: 20px;
-    max-width: 100%;
-  }
-  
-  .hero-title {
-    font-size: 24px;
-  }
-  
-  .grid {
-    grid-template-columns: repeat(2, 1fr); /* 2 Kolom di HP */
-    gap: 15px;
-  }
-  
-  .search-input {
-    width: 200px; /* Search bar lebih kecil di HP */
-  }
-  
-  .search-input:focus {
-    width: 250px; /* Expand pas diketik */
-  }
+  .hero-card { height: 300px; }
+  .hero-content { padding-left: 20px; max-width: 100%; }
+  .hero-title { font-size: 24px; }
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+  .search-input { width: 200px; }
+  .search-input:focus { width: 250px; }
 }

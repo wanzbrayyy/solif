@@ -1,4 +1,5 @@
 <template>
+  <require from="./assets/global.css"></require>
   <require from="./components/nav-bar"></require>
 
   <nav-bar></nav-bar>
