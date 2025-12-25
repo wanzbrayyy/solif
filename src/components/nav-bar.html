@@ -1,0 +1,62 @@
+<template>
+  <style>
+    .navbar {
+      background-color: #050505;
+      border-bottom: 1px solid var(--accent);
+      padding: 15px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .search-box {
+      display: flex;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 50px;
+      overflow: hidden;
+    }
+    .search-input {
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      outline: none;
+      width: 300px;
+    }
+    .search-btn {
+      background: #111;
+      border: none;
+      color: var(--accent);
+      padding: 0 20px;
+      cursor: pointer;
+    }
+    .search-btn:hover { background: #222; }
+  </style>
+
+  <nav class="navbar">
+    <div class="container nav-content">
+      <a route-href="route: home" class="logo">
+        <i class="fas fa-film"></i> WANZOFC
+      </a>
+
+      <form submit.trigger="doSearch()" class="search-box">
+        <input type="text" value.bind="keyword" class="search-input" placeholder="Cari film atau anime...">
+        <button type="submit" class="search-btn">
+          <i class="fas fa-search"></i>
+        </button>
+      </form>
+    </div>
+  </nav>
+</template>
