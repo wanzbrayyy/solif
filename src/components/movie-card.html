@@ -1,14 +1,19 @@
 <template>
-  <!-- Link ini sekarang mengarah ke route 'video' dengan parameter id -->
   <a class="card" route-href="route: video; params.bind: { id: movie.videoId }">
     
     <div class="card-image-wrapper">
-      <!-- Menggunakan cover dari database backend -->
-      <img src.bind="movie.cover" alt.bind="movie.title" class="card-img" onerror="this.src='https://via.placeholder.com/300x169?text=No+Image'">
+      <img src.bind="movie.cover" alt.bind="movie.title" class="card-img" onerror="this.src='https://i.ibb.co/6Hwz2p6/placeholder.png'">
       
-      <span class="card-duration" if.bind="movie.duration">${movie.duration}</span>
+      <!-- LABEL MOVIE / SERIES DENGAN IKON -->
+      <span class="card-type-label movie" if.bind="movie.type === 'Movie'">
+        <i class="fas fa-film"></i> ${movie.type}
+      </span>
+      <span class="card-type-label series" if.bind="movie.type === 'Series'">
+        <i class="fas fa-tv"></i> ${movie.type}
+      </span>
       
-      <!-- Overlay Play Icon saat hover -->
+      <span class="card-duration" if.bind="movie.duration !== 'N/A'">${movie.duration}</span>
+      
       <div class="play-overlay">
         <i class="fas fa-play"></i>
       </div>
@@ -18,36 +23,24 @@
       <h3 class="card-title">${movie.title}</h3>
       <div class="card-stats">
         <span><i class="fas fa-eye"></i> ${movie.views}</span>
-        <span if.bind="movie.type === 'ogv'" style="color: var(--primary); border: 1px solid var(--primary); padding: 0 4px; border-radius: 3px;">OFFICIAL</span>
-        <span if.bind="movie.type === 'ugc'" style="color: #ccc; border: 1px solid #555; padding: 0 4px; border-radius: 3px;">UGC</span>
       </div>
     </div>
   </a>
 
-  <!-- CSS Tambahan khusus Card agar overlay play icon muncul -->
+  <!-- CSS Tambahan -->
   <style>
     .play-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      opacity: 0;
-      transition: 0.3s;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4); display: flex;
+      justify-content: center; align-items: center;
+      opacity: 0; transition: 0.3s;
     }
     .play-overlay i {
-      font-size: 40px;
-      color: var(--primary);
+      font-size: 40px; color: var(--primary);
       text-shadow: 0 0 10px rgba(0,0,0,0.5);
-      transform: scale(0.5);
-      transition: 0.3s;
+      transform: scale(0.5); transition: 0.3s;
     }
-    .card:hover .play-overlay {
-      opacity: 1;
-    }
-    .card:hover .play-overlay i {
-      transform: scale(1);
-    }
+    .card:hover .play-overlay { opacity: 1; }
+    .card:hover .play-overlay i { transform: scale(1); }
   </style>
 </template>

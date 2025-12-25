@@ -3,26 +3,20 @@ import { ApiService } from '../../services/api';
 
 @inject(ApiService)
 export class Home {
-  trending = [];
-  anime = [];
-  recommended = [];
-  isLoading = true; 
+  homeSections = [];
+  isLoading = true;
+
   constructor(api) {
     this.api = api;
   }
 
   async activate() {
     this.isLoading = true;
+    this.homeSections = []; 
     try {
       const result = await this.api.getHomeData();
-      
-      if (result && result.success && result.data) {
-        this.trending = result.data.trending || [];
-        this.anime = result.data.anime || [];
-        this.recommended = result.data.recommended || [];
-        console.log("Data loaded:", result.data);
-      } else {
-        console.warn("Data kosong atau format salah", result);
+      if (result && result.success && Array.isArray(result.data)) {
+        this.homeSections = result.data;
       }
     } catch (error) {
       console.error("Fatal Error di Home:", error);

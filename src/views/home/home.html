@@ -4,59 +4,38 @@
   <div class="container">
     
     <!-- TAMPILAN SAAT LOADING -->
-    <div if.bind="isLoading" style="text-align: center; padding: 100px; color: var(--accent);">
+    <div if.bind="isLoading" class="loading-container">
       <i class="fas fa-circle-notch fa-spin fa-3x"></i>
-      <h3 style="margin-top: 20px;">Memuat Film...</h3>
+      <h3 style="margin-top: 20px;">Memuat Wanzofc...</h3>
     </div>
 
     <!-- TAMPILAN SAAT SELESAI LOADING -->
     <div if.bind="!isLoading">
       
-      <!-- HERO SECTION (Banner Atas) -->
-      <div class="hero" if.bind="trending.length > 0">
-        <div style="background: linear-gradient(to right, #000 30%, transparent), url('${trending[0].cover}'); background-size: cover; height: 400px; border-radius: 10px; display: flex; align-items: center; padding: 40px; border: 1px solid #222; position: relative;">
-          <!-- Overlay Gelap biar teks terbaca -->
-          <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); z-index: 0;"></div>
-          
-          <div style="max-width: 60%; z-index: 1; position: relative;">
-            <span style="background: var(--accent); color: black; padding: 2px 8px; font-weight: bold; border-radius: 4px; font-size: 12px;">TRENDING #1</span>
-            <h1 style="font-size: 3rem; color: white; text-shadow: 0 0 10px rgba(0,0,0,0.8); margin: 10px 0;">${trending[0].title}</h1>
-            <p style="color: #ddd; margin-bottom: 20px; font-size: 1.1rem;">
-              <i class="fas fa-play-circle" style="color: var(--accent)"></i> ${trending[0].views} 
-              &nbsp;|&nbsp; 
-              <i class="fas fa-clock"></i> ${trending[0].duration}
-            </p>
-            <a href.bind="trending[0].videoUrl" target="_blank" class="btn">
-              <i class="fas fa-play"></i> NONTON SEKARANG
-            </a>
-          </div>
+      <!-- DYNAMIC SECTION RENDERER -->
+      <!-- Loop ini akan membuat section untuk "Trending", "Netflix", "Disney", dll. secara otomatis -->
+      <section repeat.for="section of homeSections" class="movie-section">
+        
+        <!-- Tampilkan Judul Kategori -->
+        <h2 class="section-title">
+          <i class="fas fa-fire" if.bind="$first"></i> <!-- Ikon api hanya untuk section pertama -->
+          <i class="fas fa-film" if.bind="!$first"></i>
+          ${section.title}
+        </h2>
+        
+        <!-- Tampilkan Grid Film -->
+        <div class="grid">
+          <movie-card repeat.for="movie of section.items" movie.bind="movie"></movie-card>
         </div>
-      </div>
+        
+      </section>
 
-      <!-- ERROR MESSAGE JIKA SERVER MATI / DATA KOSONG -->
-      <div if.bind="trending.length === 0 && anime.length === 0" style="text-align: center; padding: 50px; background: #111; border-radius: 8px; margin-top: 20px; border: 1px solid #333;">
+
+      <!-- ERROR MESSAGE JIKA SEMUA DATA KOSONG -->
+      <div if.bind="homeSections.length === 0" class="empty-state">
         <i class="fas fa-exclamation-triangle fa-3x" style="color: #ff5555;"></i>
-        <h2 style="margin-top: 15px;">Gagal Memuat Data</h2>
-        <p style="color: #888;">Pastikan Server Backend berjalan dan URL di api.js sudah benar.</p>
-      </div>
-
-      <!-- LIST FILM -->
-      <br><br>
-      <h2 class="section-title" if.bind="trending.length > 0"><i class="fas fa-fire"></i> Sedang Trending</h2>
-      <div class="grid" if.bind="trending.length > 0">
-        <movie-card repeat.for="movie of trending" movie.bind="movie"></movie-card>
-      </div>
-
-      <br><br>
-      <h2 class="section-title" if.bind="anime.length > 0"><i class="fas fa-dragon"></i> Anime Pilihan</h2>
-      <div class="grid" if.bind="anime.length > 0">
-        <movie-card repeat.for="movie of anime" movie.bind="movie"></movie-card>
-      </div>
-
-      <br><br>
-      <h2 class="section-title" if.bind="recommended.length > 0"><i class="fas fa-thumbs-up"></i> Rekomendasi</h2>
-      <div class="grid" if.bind="recommended.length > 0">
-        <movie-card repeat.for="movie of recommended" movie.bind="movie"></movie-card>
+        <h2 style="margin-top: 15px;">Gagal Memuat Data Film</h2>
+        <p style="color: #888;">Server mungkin sedang sibuk atau tidak ada data yang tersedia saat ini.</p>
       </div>
 
     </div>
