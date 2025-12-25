@@ -5,7 +5,7 @@ export class ApiService {
     this.client = new HttpClient();
     this.client.configure(config => {
       config
-        // GUNAKAN URL BACKEND LANGSUNG (Solid Palm)
+        // INI URL BACKEND KAMU YANG BENAR
         .withBaseUrl('https://solid-palm.vercel.app/api/') 
         .withDefaults({
           headers: {
@@ -19,11 +19,15 @@ export class ApiService {
   async getHomeData() {
     try {
       const response = await this.client.fetch('home');
-      return await response.json();
+      const result = await response.json();
+      return result;
     } catch (error) {
-      console.error("API Error:", error);
-      // Return data kosong biar tidak error
-      return { success: false, data: { trending: [], anime: [], recommended: [] } };
+      console.error("ERROR API HOME:", error);
+      // Return data kosong biar gak stuck loading
+      return {
+        success: false,
+        data: { trending: [], anime: [], recommended: [] }
+      };
     }
   }
 
@@ -31,13 +35,17 @@ export class ApiService {
     try {
       const response = await this.client.fetch(`search?q=${query}`);
       return await response.json();
-    } catch (e) { return { success: false, data: [] }; }
+    } catch (error) {
+      return { success: false, data: [] };
+    }
   }
 
   async getVideoDetail(id) {
     try {
       const response = await this.client.fetch(`video/${id}`);
       return await response.json();
-    } catch (e) { return { success: false }; }
+    } catch (error) {
+      return { success: false, data: null };
+    }
   }
 }

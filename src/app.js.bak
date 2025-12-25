@@ -5,11 +5,9 @@ export class App {
     this.router = router;
     config.title = 'Wanzofc Film';
     
-    // Matikan pushState biar URL jadi https://solif.vercel.app/#/home
-    // Ini lebih stabil untuk debug di Vercel
+    // Matikan pushState dulu biar URL-nya pakai tanda # (lebih aman buat debug)
     config.options.pushState = false; 
-    config.options.root = '/';
-
+    
     config.map([
       { 
         route: ['', 'home'], 
