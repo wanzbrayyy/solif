@@ -1,0 +1,83 @@
+<template>
+  <require from="../../components/movie-card"></require>
+
+  <div class="container">
+    
+    <!-- LOADING STATE -->
+    <div if.bind="isLoading" class="loading-container">
+      <i class="fas fa-circle-notch fa-spin fa-3x"></i>
+      <p style="margin-top: 15px;">Menyiapkan Bioskop...</p>
+    </div>
+
+    <!-- CONTENT -->
+    <div if.bind="!isLoading && movie">
+      
+      <!-- VIDEO PLAYER SECTION -->
+      <div class="video-player-wrapper">
+        <!-- 
+           Catatan: Beberapa video Bilibili mungkin memblokir embed (X-Frame-Options).
+           Jika blank, user bisa klik tombol "Buka Sumber Asli" di bawah.
+        -->
+        <iframe 
+          src.bind="movie.videoUrl" 
+          frameborder="0" 
+          allowfullscreen 
+          class="video-iframe">
+        </iframe>
+      </div>
+
+      <!-- VIDEO INFO -->
+      <div class="video-info-section">
+        <h1 class="video-title">${movie.title}</h1>
+        
+        <div class="video-meta-bar">
+          <div class="meta-left">
+            <span class="views"><i class="fas fa-eye"></i> ${movie.views}</span>
+            <span class="dot">•</span>
+            <span class="date"><i class="fas fa-calendar-alt"></i> ${movie.duration}</span>
+          </div>
+          <div class="meta-right">
+            <a href.bind="movie.videoUrl" target="_blank" class="btn btn-outline">
+              <i class="fas fa-external-link-alt"></i> Buka Sumber Asli
+            </a>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- AUTHOR / DESCRIPTION -->
+        <div class="author-section" if.bind="movie.author">
+          <div class="author-avatar">
+            <img src.bind="movie.author.avatar || 'https://via.placeholder.com/50'" alt="Author">
+          </div>
+          <div class="author-details">
+            <h4>${movie.author.name || 'Wanzofc Admin'}</h4>
+            <p>Uploaded video</p>
+          </div>
+          <button class="btn btn-sm">Subscribe</button>
+        </div>
+
+        <div class="video-tags" if.bind="movie.tags">
+          <span repeat.for="tag of movie.tags" class="tag">#${tag}</span>
+        </div>
+      </div>
+
+      <!-- RELATED VIDEOS (Jika ada) -->
+      <div class="related-section" if.bind="relatedMovies.length > 0">
+        <h3 class="section-title"><i class="fas fa-film"></i> Video Terkait</h3>
+        <div class="grid">
+          <movie-card repeat.for="rel of relatedMovies" movie.bind="rel"></movie-card>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- NOT FOUND STATE -->
+    <div if.bind="!isLoading && !movie" class="empty-state">
+      <i class="fas fa-video-slash fa-3x"></i>
+      <h2>Video Tidak Ditemukan</h2>
+      <a route-href="route: home" class="btn">Kembali ke Home</a>
+    </div>
+
+  </div>
+</template>
