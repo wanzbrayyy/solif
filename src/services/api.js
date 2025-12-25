@@ -5,9 +5,8 @@ export class ApiService {
     this.client = new HttpClient();
     this.client.configure(config => {
       config
-        // GANTI INI DENGAN URL BACKEND VERCEL KAMU YANG SUDAH DEPLOY
-        // Pastikan diakhiri dengan /api/
-        .withBaseUrl('https://solid-palm.vercel.ap/api/') 
+        // INI URL BACKEND KAMU YANG BENAR
+        .withBaseUrl('https://solid-palm.vercel.app/api/') 
         .withDefaults({
           headers: {
             'Accept': 'application/json',
@@ -19,20 +18,15 @@ export class ApiService {
 
   async getHomeData() {
     try {
-      // Fetch data dari endpoint /home
       const response = await this.client.fetch('home');
       const result = await response.json();
       return result;
     } catch (error) {
       console.error("ERROR API HOME:", error);
-      // Return data palsu/kosong agar web TIDAK STUCK loading
+      // Return data kosong biar gak stuck loading
       return {
         success: false,
-        data: {
-          trending: [],
-          anime: [],
-          recommended: []
-        }
+        data: { trending: [], anime: [], recommended: [] }
       };
     }
   }
@@ -40,10 +34,8 @@ export class ApiService {
   async searchMovies(query) {
     try {
       const response = await this.client.fetch(`search?q=${query}`);
-      const result = await response.json();
-      return result;
+      return await response.json();
     } catch (error) {
-      console.error("ERROR API SEARCH:", error);
       return { success: false, data: [] };
     }
   }
@@ -51,10 +43,8 @@ export class ApiService {
   async getVideoDetail(id) {
     try {
       const response = await this.client.fetch(`video/${id}`);
-      const result = await response.json();
-      return result;
+      return await response.json();
     } catch (error) {
-      console.error("ERROR API VIDEO:", error);
       return { success: false, data: null };
     }
   }
