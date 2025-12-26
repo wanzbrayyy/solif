@@ -1,9 +1,10 @@
 <template>
   <require from="./components/nav-bar"></require>
 
-  <nav-bar></nav-bar>
+  <nav-bar router.bind="router"></nav-bar>
   
-  <div class="page-content">
-    <router-view></router-view>
-  </div>
+  <main class="page-content">
+    <!-- TAMBAHKAN swap-order="with" UNTUK FIX HALAMAN TUMPANG TINDIH -->
+    <router-view swap-order="with"></router-view>
+  </main>
 </template>
