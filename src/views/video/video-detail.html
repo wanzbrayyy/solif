@@ -55,6 +55,7 @@
         </div>
       </div>
 
+      <!-- Ganti relatedMovies.length menjadi related.length -->
       <div class="related-section" if.bind="related.length > 0">
         <h3 class="section-title"><i class="fas fa-film"></i> Tontonan Serupa</h3>
         <div class="grid">
@@ -66,7 +67,6 @@
     <div if.bind="!isLoading && !movie" class="empty-state">
       <i class="fas fa-ghost fa-3x"></i>
       <h2>Film Tidak Ditemukan</h2>
-      <p>Mungkin link salah atau film telah dihapus.</p>
       <a route-href="route: home" class="btn">Kembali ke Home</a>
     </div>
   </div>
