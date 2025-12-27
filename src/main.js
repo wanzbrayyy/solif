@@ -10,6 +10,7 @@ const app = createApp(App)
 
 app.use(router)
 app.mount('#app')
+
 AOS.init({
   duration: 1000,
   once: false,

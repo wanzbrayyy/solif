@@ -1,12 +1,12 @@
 <template>
-  <div class="chat-layout">
+  <div class="chat-layout animate__animated animate__fadeIn">
     <!-- Responsive Sidebar Overlay -->
     <div class="sidebar-overlay fade-in" v-if="isSidebarOpen" @click="toggleSidebar"></div>
 
     <!-- Sidebar / Navigation -->
     <aside :class="['sidebar', { 'open': isSidebarOpen }]">
       <div class="sidebar-header">
-        <div class="logo-area">
+        <div class="logo-area animate__animated animate__fadeInLeft">
           <i class="fa-solid fa-layer-group"></i> Wanzofc
         </div>
         <button class="close-btn" @click="toggleSidebar"><i class="fa-solid fa-xmark"></i></button>
@@ -19,12 +19,12 @@
       </div>
 
       <div class="history-list">
-        <div class="history-label">Today</div>
+        <div class="history-label">History</div>
         <div class="history-item slide-in" style="animation-delay: 0.1s">
-          <i class="fa-regular fa-message"></i> Python Script Help
+          <i class="fa-regular fa-message"></i> Python Web Scraper
         </div>
         <div class="history-item slide-in" style="animation-delay: 0.2s">
-          <i class="fa-regular fa-message"></i> Vue Animation Logic
+          <i class="fa-regular fa-message"></i> Vue 3 Composition API
         </div>
       </div>
 
@@ -44,7 +44,7 @@
             <i class="fa-solid fa-bars-staggered"></i>
           </button>
           <div class="model-selector">
-            <span class="dot"></span> Gemini 2.0 Flash
+            <span class="dot"></span> Kat-Coder Pro
           </div>
         </div>
         <div class="right">
@@ -62,7 +62,7 @@
           <div class="ai-avatar zoom-in">
             <i class="fa-solid fa-robot"></i>
           </div>
-          <h2 class="fade-in">How can <span class="gradient">Wanzofc</span> help?</h2>
+          <h2 class="fade-in">How can <span class="gradient">Wanzofc AI</span> help?</h2>
           
           <div class="suggestion-grid jack-in-the-box">
             <button @click="sendPrompt('Write a Python script for web scraping')" class="card-sug">
@@ -118,7 +118,7 @@
             <i v-else class="fa-solid fa-paper-plane"></i>
           </button>
         </div>
-        <div class="credits">AI can make mistakes. Check important info.</div>
+        <div class="credits">AI generated content via OpenRouter (Kwaipilot).</div>
       </div>
     </main>
   </div>
@@ -127,6 +127,7 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import { marked } from 'marked'
+import OpenAI from 'openai'
 
 // Setup Marked for Code Highlighting
 marked.setOptions({
@@ -140,12 +141,16 @@ const messages = ref([])
 const isLoading = ref(false)
 const chatBox = ref(null)
 
-// IMPORTANT: API Configuration
-// Using generic v1beta endpoint structure that works with key provided
-const API_KEY = 'AIzaSyDaasWhrWeDS2xJj08VUhmTjnaSYB1U5Ys'
-// Changed model to gemini-1.5-flash or gemini-pro if 2.0-flash is not publicly active yet, 
-// but user requested 2.0-flash specifically in curl. Keeping curl logic.
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`
+// --- OPENAI / OPENROUTER CONFIGURATION ---
+const client = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: "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",
+  dangerouslyAllowBrowser: true, // Wajib true karena kita pakai di Vite/Frontend
+  defaultHeaders: {
+    "HTTP-Referer": window.location.origin,
+    "X-Title": "Wanzofc Dev",
+  },
+});
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -179,50 +184,36 @@ const sendMessage = async () => {
   if (!input.value.trim() || isLoading.value) return
 
   const userText = input.value
+  
+  // Push user message ke UI (role: user)
   messages.value.push({ role: 'user', text: userText })
   input.value = ''
   isLoading.value = true
   scrollToBottom()
 
   try {
-    const payload = {
-      contents: [
-        {
-          parts: [{ text: userText }]
-        }
-      ]
-    }
+    // Siapkan history pesan untuk dikirim ke API
+    // Mapping: UI uses 'model', API uses 'assistant'
+    const apiMessages = messages.value.map(msg => ({
+      role: msg.role === 'model' ? 'assistant' : 'user',
+      content: msg.text
+    }));
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
+    const completion = await client.chat.completions.create({
+      model: "kwaipilot/kat-coder-pro:free",
+      messages: apiMessages
+    });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`)
-    }
+    const botText = completion.choices[0]?.message?.content || "No response.";
 
-    const data = await response.json()
-    
-    // Improved Response Parsing to avoid "Sorry I didn't get that"
-    let botText = "No response generated."
-    
-    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-       botText = data.candidates[0].content.parts[0].text;
-    } else if (data.promptFeedback && data.promptFeedback.blockReason) {
-       botText = `Blocked by safety filters: ${data.promptFeedback.blockReason}`;
-    }
-
+    // Push bot message ke UI (role: model agar sesuai CSS)
     messages.value.push({ role: 'model', text: botText })
 
   } catch (error) {
-    console.error(error)
+    console.error("OpenRouter Error:", error)
     messages.value.push({ 
       role: 'model', 
-      text: `**Error:** Could not connect to Gemini AI. (${error.message})` 
+      text: `**Error:** Failed to connect to OpenRouter. (${error.message})` 
     })
   } finally {
     isLoading.value = false
@@ -232,10 +223,11 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
+/* Pastikan CSS ini ada untuk animasi dan layout */
 .chat-layout {
   display: flex;
   height: 100vh;
-  background: #0f172a; /* Dark theme Chat */
+  background: #0f172a; 
   color: #e2e8f0;
   position: relative;
   overflow: hidden;
@@ -484,7 +476,12 @@ textarea {
 }
 .md-content :deep(code) { font-family: 'Fira Code', monospace; color: #a5b4fc; }
 
-/* Loading Animation */
+/* Animation Utils */
+.shake-hover:hover { animation: shake 0.5s; }
+.pulse-hover:hover { animation: pulse 1s infinite; }
+.rubber-band-hover:hover { animation: rubberBand 1s; }
+
+/* Loading Dots */
 .dot-flashing {
   position: relative;
   width: 6px; height: 6px;
@@ -505,7 +502,4 @@ textarea {
 .dot-flashing::after { left: 12px; width: 6px; height: 6px; border-radius: 5px; background-color: #9880ff; animation: dot-flashing 1s infinite alternate; animation-delay: 1s; }
 
 @keyframes dot-flashing { 0% { background-color: #9880ff; } 50%, 100% { background-color: rgba(152, 128, 255, 0.2); } }
-
-.shake-hover:hover { animation: shake 0.5s; }
-.pulse-hover:hover { animation: pulse 1s infinite; }
 </style>
