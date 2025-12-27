@@ -228,12 +228,19 @@ const currentModelName = computed(() => availableModels.find(m => m.id === selec
 onMounted(async () => {
   const userStr = localStorage.getItem('userData')
   if (userStr) {
-    const user = JSON.parse(userStr)
-    userName.value = user.username
-    userTier.value = user.tier
-    userAvatar.value = user.avatar
+    try {
+      const user = JSON.parse(userStr)
+      userName.value = user.username
+      userTier.value = user.tier
+      userAvatar.value = user.avatar
+    } catch(e) {
+      console.error("Failed to parse user data from localStorage")
+      handleLogout()
+    }
   }
+
   await refreshSavedChats()
+
   if (route.params && route.params.id) await loadChat(route.params.id)
   if (route.query && route.query.model) {
     const modelExists = availableModels.find(m => m.id === route.query.model)
@@ -242,8 +249,11 @@ onMounted(async () => {
 })
 
 watch(() => route.params.id, (newId) => {
-  if (newId && newId !== currentChatId.value) loadChat(newId)
-  else if (!newId) resetView()
+  if (newId && newId !== currentChatId.value) {
+    loadChat(newId)
+  } else if (!newId) {
+    resetView()
+  }
 })
 
 const handleLogout = () => {
@@ -420,6 +430,7 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
+:root { --primary: #0ea5e9; --secondary: #14b8a6; }
 .chat-layout { display: flex; height: 100vh; background: #0f172a; color: #e2e8f0; font-family: 'Plus Jakarta Sans', sans-serif; text-transform: lowercase; overflow: hidden; }
 .sidebar { width: 280px; background: #020617; border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; position: fixed; height: 100%; z-index: 100; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .sidebar.open { transform: translateX(0); }
@@ -469,7 +480,7 @@ const sendMessage = async () => {
 .model-id { font-size: 0.7rem; color: #64748b; font-family: monospace; margin-top: 2px; }
 .fa-check { color: #22c55e; }
 .right { display: flex; align-items: center; gap: 15px; }
-.icon-link { color: #94a3b8; font-size: 1.2rem; transition: 0.2s; }
+.icon-link { color: #94a3b8; font-size: 1.2rem; transition: 0.2s; text-decoration: none; }
 .sharing-controls { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 20px; }
 .icon-btn { color: #94a3b8; font-size: 1rem; cursor: pointer; border: none; background: none; transition: 0.2s; }
 .icon-btn:hover { color: white; }
