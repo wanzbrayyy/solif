@@ -144,7 +144,7 @@ const chatBox = ref(null)
 
 // --- API CONFIGURATION ---
 // Menggunakan API Key yang Anda berikan
-const API_KEY = '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'
+const API_KEY = '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'
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const toggleSidebar = () => {
