@@ -250,27 +250,35 @@ const cancel2FASetup = () => {
 }
 
 // Simpan Semua Perubahan Profile
+// ... kode lainnya ...
+
 const updateProfile = async () => {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
-    
-    // Call API Update
+    // FIX: Jangan kirim token di body, header sudah otomatis
     const res = await api.updateProfile({ 
-      token, 
-      ...form.value 
+      username: form.value.username,
+      email: form.value.email,
+      password: form.value.password,
+      avatar: form.value.avatar,
+      is2FAEnabled: form.value.is2FAEnabled, // Kirim status 2FA (opsional)
+      tier: form.value.tier 
     })
     
-    // Update LocalStorage dengan data terbaru dari server
-    localStorage.setItem('userData', JSON.stringify(res.data))
+    // Update Local Storage
+    const userData = { ...JSON.parse(localStorage.getItem('userData')), ...res.data }
+    localStorage.setItem('userData', JSON.stringify(userData))
+    
     alert('Profile updated successfully!')
   } catch (error) {
-    console.error(error)
-    alert('Failed to update profile.')
+    console.error("Update failed:", error)
+    alert('Failed to update profile. Please try logging in again.')
   } finally {
     isLoading.value = false
   }
 }
+
+// ... kode lainnya ...
 
 // Simulasi Upgrade Tier
 const upgradeTier = () => {
