@@ -1,379 +1,289 @@
 <template>
-  <div class="landing-container">
+  <div class="landing-wrap">
     <!-- Navbar -->
-    <nav class="navbar" id="navbar">
-      <div class="nav-content">
-        <div class="logo animate__animated animate__fadeInLeft">
-          <i class="fa-solid fa-code-branch"></i> Wanzofc Dev
-        </div>
-        <div class="nav-links animate__animated animate__fadeInRight">
-          <a href="#features" class="link">Features</a>
-          <a href="#tech" class="link">Technology</a>
-          <button @click="goToChat" class="btn-chat pulse-btn">
-            Try AI Chat <i class="fa-solid fa-arrow-right"></i>
-          </button>
-        </div>
+    <nav class="nav-container wipe-in">
+      <div class="logo">
+        <div class="logo-box rotate"><i class="fa-solid fa-code"></i></div>
+        <span>Wanzofc Dev</span>
+      </div>
+      <div class="nav-actions slide-in">
+        <a href="https://github.com/wanzofc" target="_blank" class="github-btn">
+          <i class="fa-brands fa-github"></i>
+        </a>
+        <button @click="router.push('/chat')" class="login-btn">Launch App</button>
       </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="hero">
-      <div class="hero-bg"></div>
+    <!-- Hero -->
+    <main class="hero">
+      <div class="hero-glow"></div>
+      
       <div class="hero-content">
-        <div class="badge" data-aos="fade-down">
-          <i class="fa-solid fa-sparkles"></i> AI Powered Development
+        <div class="badge jack-in-the-box">
+          <i class="fa-solid fa-bolt"></i> Powered by Gemini 2.0 Flash
         </div>
-        <h1 class="glitch-text" data-aos="zoom-in" data-aos-delay="200">
-          Build the Future with <br>
-          <span class="gradient-text">Wanzofc Studio</span>
-        </h1>
-        <p data-aos="fade-up" data-aos-delay="400">
-          Accelerate your coding workflow with Gemini 2.0 Flash integration. 
-          Smart code generation, debugging, and creative problem solving in one unified interface.
-        </p>
         
-        <div class="cta-group" data-aos="fade-up" data-aos-delay="600">
-          <button @click="goToChat" class="btn-primary animate__animated animate__pulse animate__infinite">
-            Launch Console
+        <h1 class="zoom-in" style="animation-delay: 0.2s">
+          Code with <span class="gradient-text">Intelligence</span><br>
+          Create with <span class="gradient-text">Speed</span>
+        </h1>
+        
+        <p class="fade-in" style="animation-delay: 0.4s">
+          The next-generation AI developer environment. 
+          Debug, refactor, and generate code in seconds.
+        </p>
+
+        <div class="cta-wrapper fade-in" style="animation-delay: 0.6s">
+          <button @click="router.push('/chat')" class="btn-primary rubber-band-hover">
+            Start Coding Now <i class="fa-solid fa-arrow-right"></i>
           </button>
-          <button class="btn-secondary">
-            View Documentation
-          </button>
+          <button class="btn-secondary">View Documentation</button>
         </div>
       </div>
 
-      <!-- Mockup Animation -->
-      <div class="mockup-container" data-aos="flip-up" data-aos-duration="1500">
-        <div class="code-window">
-          <div class="window-bar">
+      <!-- Mockup Code -->
+      <div class="code-mockup flip-in" style="animation-delay: 0.8s">
+        <div class="mockup-header">
+          <div class="dots">
             <span class="dot red"></span>
             <span class="dot yellow"></span>
             <span class="dot green"></span>
-            <span class="title">ai_core.js</span>
           </div>
-          <div class="window-body">
-            <div class="line">
-              <span class="kwd">const</span> <span class="var">initAI</span> = <span class="kwd">async</span> () => {
-            </div>
-            <div class="line indent">
-              <span class="kwd">await</span> <span class="func">connect</span>(<span class="str">'Wanzofc-Model'</span>);
-            </div>
-            <div class="line indent">
-              <span class="obj">console</span>.<span class="func">log</span>(<span class="str">'System Online 🚀'</span>);
-            </div>
-            <div class="line">}</div>
-          </div>
+          <span class="file-name">helper.py</span>
+        </div>
+        <div class="mockup-body">
+          <pre><code><span class="kwd">def</span> <span class="func">generate_solution</span>(problem):
+    <span class="comment"># AI Processing</span>
+    ai = <span class="cls">WanzofcAI</span>()
+    result = ai.<span class="func">solve</span>(problem)
+    <span class="kwd">return</span> result</code></pre>
         </div>
       </div>
-    </section>
+    </main>
 
-    <!-- Features Section -->
-    <section id="features" class="features">
-      <h2 data-aos="fade-up">Why Choose Wanzofc?</h2>
-      <div class="grid">
-        <div class="card" data-aos="fade-right">
-          <i class="fa-solid fa-bolt icon"></i>
-          <h3>Lightning Fast</h3>
-          <p>Powered by Gemini 2.0 Flash for instant responses.</p>
-        </div>
-        <div class="card" data-aos="fade-up">
-          <i class="fa-solid fa-shield-halved icon"></i>
-          <h3>Secure & Private</h3>
-          <p>Your code remains yours. Enterprise grade security.</p>
-        </div>
-        <div class="card" data-aos="fade-left">
-          <i class="fa-solid fa-wand-magic-sparkles icon"></i>
-          <h3>Smart Context</h3>
-          <p>Understands your project structure and dependencies.</p>
-        </div>
+    <!-- Features -->
+    <section class="features">
+      <div class="feature-card" data-aos="fade-up">
+        <div class="icon-box"><i class="fa-solid fa-microchip"></i></div>
+        <h3>Ultra Fast</h3>
+        <p>Responses in milliseconds using Flash models.</p>
+      </div>
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="icon-box"><i class="fa-solid fa-shield-halved"></i></div>
+        <h3>Secure Code</h3>
+        <p>Your intellectual property remains safe.</p>
+      </div>
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="icon-box"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <h3>Smart Context</h3>
+        <p>Understands full project directory scope.</p>
       </div>
     </section>
-
-    <footer class="footer">
-      <p>&copy; 2025 Wanzofc Dev. Built with Vue 3 & Gemini API.</p>
-    </footer>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-
 const router = useRouter()
-
-const goToChat = () => {
-  router.push('/chat')
-}
-
-// Vanilla JS Navbar Logic
-onMounted(() => {
-  const navbar = document.getElementById('navbar')
-  
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      navbar.classList.add('scrolled')
-    } else {
-      navbar.classList.remove('scrolled')
-    }
-  })
-})
 </script>
 
 <style scoped>
-.landing-container {
+.landing-wrap {
   min-height: 100vh;
   background: var(--bg-dark);
-  overflow-x: hidden;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Navbar */
-.navbar {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  z-index: 1000;
-  transition: all 0.4s ease;
-  padding: 20px 0;
-  border-bottom: 1px solid transparent;
-}
-
-.navbar.scrolled {
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(12px);
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-.nav-content {
-  max-width: 1200px;
-  margin: 0 auto;
+.nav-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 1.5rem 2rem;
+  backdrop-filter: blur(10px);
+  position: fixed;
+  width: 100%;
+  z-index: 50;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: white;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 
-.nav-links {
-  display: flex;
-  gap: 30px;
-  align-items: center;
-}
-
-.link {
-  color: var(--text-muted);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.3s;
-}
-
-.link:hover {
-  color: var(--accent);
-}
-
-.btn-chat {
+.logo-box {
+  width: 40px;
+  height: 40px;
   background: var(--primary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.nav-actions { display: flex; gap: 1rem; align-items: center; }
+
+.login-btn {
+  background: rgba(255,255,255,0.1);
   color: white;
-  padding: 10px 24px;
-  border-radius: 50px;
+  padding: 8px 20px;
+  border-radius: 6px;
   font-weight: 600;
-  transition: transform 0.3s;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: 0.3s;
 }
 
-.btn-chat:hover {
-  background: var(--secondary);
-  transform: scale(1.05);
-}
+.login-btn:hover { background: white; color: black; }
 
-/* Hero */
 .hero {
-  padding-top: 140px;
-  min-height: 100vh;
+  padding-top: 150px;
+  padding-bottom: 50px;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
   position: relative;
 }
 
-.hero-bg {
+.hero-glow {
   position: absolute;
-  top: -20%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  top: -100px;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 60%);
   z-index: 0;
+  animation: pulse 4s infinite;
 }
 
-.hero-content {
-  z-index: 1;
-  max-width: 800px;
-  padding: 0 20px;
-}
+.hero-content { z-index: 1; max-width: 800px; padding: 0 20px; }
 
 .badge {
   display: inline-flex;
-  align-items: center;
   gap: 8px;
   background: rgba(99, 102, 241, 0.1);
   border: 1px solid rgba(99, 102, 241, 0.3);
-  color: var(--accent);
   padding: 6px 16px;
   border-radius: 20px;
+  color: #a5b4fc;
   font-size: 0.9rem;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }
 
 h1 {
   font-size: 4rem;
-  line-height: 1.1;
-  margin-bottom: 20px;
   font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%);
+  background: linear-gradient(to right, #818cf8, #c084fc);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-p {
-  font-size: 1.2rem;
-  color: var(--text-muted);
-  margin-bottom: 40px;
-  line-height: 1.6;
-}
+p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 3rem; }
 
-.cta-group {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  margin-bottom: 60px;
-}
+.cta-wrapper { display: flex; gap: 1rem; justify-content: center; margin-bottom: 4rem; }
 
 .btn-primary {
-  background: white;
-  color: var(--bg-dark);
-  padding: 16px 32px;
+  background: var(--primary);
+  color: white;
+  padding: 14px 32px;
   border-radius: 8px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 30px -10px var(--primary);
+  transition: transform 0.2s;
 }
+
+.btn-primary:hover { transform: translateY(-3px); }
 
 .btn-secondary {
   background: transparent;
   border: 1px solid var(--border);
   color: white;
-  padding: 16px 32px;
+  padding: 14px 32px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 1.1rem;
+  transition: 0.3s;
 }
 
-.btn-secondary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
 
-/* Code Mockup */
-.mockup-container {
+.code-mockup {
   width: 90%;
-  max-width: 700px;
-  margin-bottom: 100px;
-  z-index: 2;
-}
-
-.code-window {
-  background: #1e1e1e;
+  max-width: 600px;
+  background: #0f172a;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  border: 1px solid #333;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  text-align: left;
+  z-index: 1;
 }
 
-.window-bar {
-  background: #252526;
-  padding: 12px;
+.mockup-header {
+  background: #1e293b;
+  padding: 10px 15px;
   display: flex;
-  gap: 8px;
+  gap: 15px;
   align-items: center;
 }
 
-.dot { width: 12px; height: 12px; border-radius: 50%; }
-.red { background: #ff5f56; }
-.yellow { background: #ffbd2e; }
-.green { background: #27c93f; }
-.title { margin-left: 10px; color: #888; font-size: 0.8rem; font-family: monospace; }
+.dots { display: flex; gap: 6px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.red { background: #ef4444; } .yellow { background: #eab308; } .green { background: #22c55e; }
+.file-name { font-family: monospace; font-size: 0.8rem; color: #94a3b8; }
 
-.window-body {
-  padding: 20px;
-  text-align: left;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.95rem;
-}
+.mockup-body { padding: 20px; font-family: 'Fira Code', monospace; color: #cbd5e1; }
+.kwd { color: #c084fc; } .func { color: #60a5fa; } .cls { color: #facc15; } .comment { color: #475569; }
 
-.line { margin-bottom: 5px; }
-.indent { margin-left: 20px; }
-.kwd { color: #cc7832; }
-.var { color: #ffc66d; }
-.str { color: #6a8759; }
-.func { color: #9876aa; }
-.obj { color: #a9b7c6; }
-
-/* Features */
 .features {
-  padding: 80px 20px;
-  background: #0b1120;
-  text-align: center;
-}
-
-.grid {
+  padding: 4rem 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
   max-width: 1200px;
-  margin: 50px auto 0;
+  margin: 0 auto;
 }
 
-.card {
-  background: rgba(30, 41, 59, 0.5);
-  padding: 40px;
+.feature-card {
+  background: rgba(30, 41, 59, 0.4);
+  padding: 2rem;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.05);
-  transition: transform 0.3s;
+  border: 1px solid var(--border);
+  transition: 0.3s;
 }
 
-.card:hover {
-  transform: translateY(-10px);
-  background: rgba(30, 41, 59, 0.8);
-}
+.feature-card:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.7); border-color: var(--primary); }
 
-.icon {
-  font-size: 2.5rem;
-  color: var(--secondary);
-  margin-bottom: 20px;
-}
-
-h3 {
-  margin-bottom: 15px;
+.icon-box {
+  width: 50px;
+  height: 50px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.5rem;
+  margin-bottom: 1rem;
 }
 
-.footer {
-  padding: 40px;
-  text-align: center;
-  color: var(--text-muted);
-  border-top: 1px solid rgba(255,255,255,0.05);
+/* Rubber Band Hover Effect for Button */
+.rubber-band-hover:hover {
+  animation: rubberBand 1s;
 }
 </style>
