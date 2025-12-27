@@ -19,12 +19,9 @@
       </div>
 
       <div class="history-list">
-        <div class="history-label">History</div>
+        <div class="history-label">Session History</div>
         <div class="history-item slide-in" style="animation-delay: 0.1s">
-          <i class="fa-regular fa-message"></i> Python Web Scraper
-        </div>
-        <div class="history-item slide-in" style="animation-delay: 0.2s">
-          <i class="fa-regular fa-message"></i> Vue 3 Composition API
+          <i class="fa-regular fa-message"></i> Kat-Coder Session
         </div>
       </div>
 
@@ -88,9 +85,11 @@
               <i v-else class="fa-solid fa-user"></i>
             </div>
             <div class="msg-bubble">
+              <!-- Error State Display -->
               <div v-if="msg.isError" class="error-content">
                 <i class="fa-solid fa-triangle-exclamation"></i> {{ msg.text }}
               </div>
+              <!-- Normal Markdown Content -->
               <div v-else class="md-content" v-html="renderMarkdown(msg.text)"></div>
             </div>
           </div>
@@ -121,7 +120,7 @@
             <i v-else class="fa-solid fa-paper-plane"></i>
           </button>
         </div>
-        <div class="credits">Powered by OpenRouter & Kwaipilot</div>
+        <div class="credits">Powered by OpenRouter (Kwaipilot)</div>
       </div>
     </main>
   </div>
@@ -130,9 +129,8 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import { marked } from 'marked'
-import OpenAI from 'openai'
 
-// 1. Setup Marked
+// Setup Marked for Code Highlighting
 marked.setOptions({
   breaks: true,
   gfm: true
@@ -144,20 +142,10 @@ const messages = ref([])
 const isLoading = ref(false)
 const chatBox = ref(null)
 
-// 2. OPENAI CONFIGURATION
-// Note: "401 User not found" means the API Key is invalid or user account doesn't exist on OpenRouter.
-// Please verify your key at openrouter.ai/keys
+// --- API CONFIGURATION ---
+// Menggunakan API Key yang Anda berikan
 const API_KEY = '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'
-
-const client = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: API_KEY,
-  dangerouslyAllowBrowser: true, // Required for frontend usage
-  defaultHeaders: {
-    "HTTP-Referer": window.location.origin, // e.g. http://localhost:5173
-    "X-Title": "Wanzofc Dev",
-  },
-});
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -187,6 +175,7 @@ const scrollToBottom = () => {
   })
 }
 
+// FUNGSI SEND MESSAGE DENGAN FETCH (PENGGANTI AXIOS/OPENAI SDK)
 const sendMessage = async () => {
   if (!input.value.trim() || isLoading.value) return
 
@@ -197,37 +186,56 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    // 3. Construct API Messages
+    // Siapkan history untuk API (role: 'assistant' untuk bot)
     const apiMessages = messages.value
-      .filter(m => !m.isError) // Filter out error messages from history
+      .filter(m => !m.isError)
       .map(msg => ({
         role: msg.role === 'model' ? 'assistant' : 'user',
         content: msg.text
-      }));
+      }))
 
-    // 4. API Call
-    const completion = await client.chat.completions.create({
-      model: "kwaipilot/kat-coder-pro:free",
-      messages: apiMessages,
-    });
+    // REQUES LANGSUNG (SAMA SEPERTI SNIPPET AXIOS ANDA)
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`, // Perhatikan: Tanpa $
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin, // Otomatis ambil URL site
+        'X-Title': 'Wanzofc Dev'
+      },
+      body: JSON.stringify({
+        model: "kwaipilot/kat-coder-pro:free",
+        messages: apiMessages
+      })
+    })
 
-    const botText = completion.choices[0]?.message?.content || "No response received.";
+    const data = await response.json()
+
+    // Handle Error dari API OpenRouter
+    if (!response.ok) {
+      // Cek kode error spesifik
+      const errorMsg = data.error?.message || `API Error: ${response.status}`
+      throw new Error(errorMsg)
+    }
+
+    // Ambil respon sukses
+    const botText = data.choices?.[0]?.message?.content || "No response received."
     messages.value.push({ role: 'model', text: botText })
 
   } catch (error) {
-    console.error("OpenRouter Error:", error);
+    console.error("Connection Error:", error)
     
-    // 5. Error Handling Specific to 401
-    let errorMsg = `Error: ${error.message}`;
-    if (error.status === 401 || error.message.includes("401")) {
-      errorMsg = "Authentication Failed: API Key is invalid or User not found (401). Please check your OpenRouter Key.";
+    // Pesan Error User Friendly
+    let displayError = `Error: ${error.message}`
+    if (error.message.includes("401") || error.message.includes("auth")) {
+      displayError = "Authentication Failed: Check API Key."
     }
 
     messages.value.push({ 
       role: 'model', 
-      text: errorMsg,
+      text: displayError,
       isError: true 
-    });
+    })
   } finally {
     isLoading.value = false
     scrollToBottom()

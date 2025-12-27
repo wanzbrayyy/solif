@@ -88,7 +88,10 @@
               <i v-else class="fa-solid fa-user"></i>
             </div>
             <div class="msg-bubble">
-              <div class="md-content" v-html="renderMarkdown(msg.text)"></div>
+              <div v-if="msg.isError" class="error-content">
+                <i class="fa-solid fa-triangle-exclamation"></i> {{ msg.text }}
+              </div>
+              <div v-else class="md-content" v-html="renderMarkdown(msg.text)"></div>
             </div>
           </div>
           
@@ -118,7 +121,7 @@
             <i v-else class="fa-solid fa-paper-plane"></i>
           </button>
         </div>
-        <div class="credits">AI generated content via OpenRouter (Kwaipilot).</div>
+        <div class="credits">Powered by OpenRouter & Kwaipilot</div>
       </div>
     </main>
   </div>
@@ -129,7 +132,7 @@ import { ref, nextTick } from 'vue'
 import { marked } from 'marked'
 import OpenAI from 'openai'
 
-// Setup Marked for Code Highlighting
+// 1. Setup Marked
 marked.setOptions({
   breaks: true,
   gfm: true
@@ -141,13 +144,17 @@ const messages = ref([])
 const isLoading = ref(false)
 const chatBox = ref(null)
 
-// --- OPENAI / OPENROUTER CONFIGURATION ---
+// 2. OPENAI CONFIGURATION
+// Note: "401 User not found" means the API Key is invalid or user account doesn't exist on OpenRouter.
+// Please verify your key at openrouter.ai/keys
+const API_KEY = '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'
+
 const client = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
-  apiKey: "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",
-  dangerouslyAllowBrowser: true, // Wajib true karena kita pakai di Vite/Frontend
+  apiKey: API_KEY,
+  dangerouslyAllowBrowser: true, // Required for frontend usage
   defaultHeaders: {
-    "HTTP-Referer": window.location.origin,
+    "HTTP-Referer": window.location.origin, // e.g. http://localhost:5173
     "X-Title": "Wanzofc Dev",
   },
 });
@@ -184,37 +191,43 @@ const sendMessage = async () => {
   if (!input.value.trim() || isLoading.value) return
 
   const userText = input.value
-  
-  // Push user message ke UI (role: user)
   messages.value.push({ role: 'user', text: userText })
   input.value = ''
   isLoading.value = true
   scrollToBottom()
 
   try {
-    // Siapkan history pesan untuk dikirim ke API
-    // Mapping: UI uses 'model', API uses 'assistant'
-    const apiMessages = messages.value.map(msg => ({
-      role: msg.role === 'model' ? 'assistant' : 'user',
-      content: msg.text
-    }));
+    // 3. Construct API Messages
+    const apiMessages = messages.value
+      .filter(m => !m.isError) // Filter out error messages from history
+      .map(msg => ({
+        role: msg.role === 'model' ? 'assistant' : 'user',
+        content: msg.text
+      }));
 
+    // 4. API Call
     const completion = await client.chat.completions.create({
       model: "kwaipilot/kat-coder-pro:free",
-      messages: apiMessages
+      messages: apiMessages,
     });
 
-    const botText = completion.choices[0]?.message?.content || "No response.";
-
-    // Push bot message ke UI (role: model agar sesuai CSS)
+    const botText = completion.choices[0]?.message?.content || "No response received.";
     messages.value.push({ role: 'model', text: botText })
 
   } catch (error) {
-    console.error("OpenRouter Error:", error)
+    console.error("OpenRouter Error:", error);
+    
+    // 5. Error Handling Specific to 401
+    let errorMsg = `Error: ${error.message}`;
+    if (error.status === 401 || error.message.includes("401")) {
+      errorMsg = "Authentication Failed: API Key is invalid or User not found (401). Please check your OpenRouter Key.";
+    }
+
     messages.value.push({ 
       role: 'model', 
-      text: `**Error:** Failed to connect to OpenRouter. (${error.message})` 
-    })
+      text: errorMsg,
+      isError: true 
+    });
   } finally {
     isLoading.value = false
     scrollToBottom()
@@ -223,7 +236,6 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
-/* Pastikan CSS ini ada untuk animasi dan layout */
 .chat-layout {
   display: flex;
   height: 100vh;
@@ -413,8 +425,11 @@ const sendMessage = async () => {
   line-height: 1.6;
   font-size: 0.95rem;
   border: 1px solid rgba(255,255,255,0.05);
+  overflow-wrap: break-word;
 }
 .user .msg-bubble { background: #334155; border-color: transparent; }
+
+.error-content { color: #ef4444; font-weight: 500; display: flex; gap: 8px; align-items: center; }
 
 /* Input */
 .input-area {
@@ -476,7 +491,7 @@ textarea {
 }
 .md-content :deep(code) { font-family: 'Fira Code', monospace; color: #a5b4fc; }
 
-/* Animation Utils */
+/* Animation Utils (Manual & Animate.css Helper) */
 .shake-hover:hover { animation: shake 0.5s; }
 .pulse-hover:hover { animation: pulse 1s infinite; }
 .rubber-band-hover:hover { animation: rubberBand 1s; }
