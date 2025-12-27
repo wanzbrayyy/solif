@@ -235,12 +235,9 @@ onMounted(async () => {
       userAvatar.value = user.avatar
     } catch(e) { handleLogout() }
   }
-
   await refreshSavedChats()
-
   const routeId = route.params ? route.params.id : null
   if (routeId) await initializeChatState(routeId)
-  
   const routeModel = route.query ? route.query.model : null
   if (routeModel) {
     const modelExists = availableModels.find(m => m.id === routeModel)
@@ -300,9 +297,7 @@ const resetView = () => {
   permissionLevel.value = 'view'
 }
 
-const loadChat = (id) => {
-  router.push({ name: 'chat', params: { id }, query: { model: selectedModel.value } })
-}
+const loadChat = (id) => router.push({ name: 'chat', params: { id }, query: { model: selectedModel.value } })
 
 const deleteChat = async (id) => {
   try {
@@ -328,7 +323,11 @@ const saveCurrentChat = async () => {
       router.replace({ params: { id: res.data._id }, query: { model: selectedModel.value } })
       savedChats.value.unshift({ ...payload, id: res.data._id });
     }
-  } catch(e) { console.warn("Auto-save failed") }
+    return true // Return true on success
+  } catch(e) {
+    console.warn("Auto-save failed")
+    return false // Return false on failure
+  }
 }
 
 const shareChat = () => {
@@ -344,8 +343,20 @@ const copyLink = () => {
   setTimeout(() => { isCopied.value = false }, 2000)
 }
 
-const handlePublicToggle = () => saveCurrentChat()
-const handlePermissionChange = () => saveCurrentChat()
+const handlePublicToggle = async () => {
+  const success = await saveCurrentChat();
+  if (!success) {
+    alert("Failed to update sharing status. Please check your connection.");
+    isPublic.value = !isPublic.value; // Revert toggle on failure
+  }
+}
+
+const handlePermissionChange = async () => {
+  const success = await saveCurrentChat();
+  if (!success) {
+     alert("Failed to update permission. Please check your connection.");
+  }
+}
 
 const selectModel = (model) => {
   selectedModel.value = model.id
