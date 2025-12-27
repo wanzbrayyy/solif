@@ -9,7 +9,6 @@
         <div class="logo-area animate__animated animate__fadeInLeft">
           <i class="fa-solid fa-layer-group"></i> wanzofc
         </div>
-        <!-- Tombol Close Keren -->
         <button class="close-btn-cool" @click="toggleSidebar">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -42,7 +41,7 @@
         </div>
       </div>
 
-      <!-- SIDEBAR FOOTER DENGAN PROFILE CARD TIER -->
+      <!-- SIDEBAR FOOTER DENGAN PROFILE -->
       <div class="sidebar-footer">
         <div class="user-card-enhanced">
           <div class="user-info-row">
@@ -138,17 +137,18 @@
               <i v-else class="fa-solid fa-user"></i>
             </div>
             
-            <!-- Message Bubble -->
             <div class="msg-bubble-wrapper">
               <div class="msg-bubble">
+                <!-- ERROR DISPLAY (Jika request gagal) -->
                 <div v-if="msg.isError" class="error-content">
                   <i class="fa-solid fa-triangle-exclamation"></i> {{ msg.text }}
                 </div>
+                <!-- NORMAL TEXT -->
                 <div v-else class="md-content" v-html="renderMarkdown(msg.text)"></div>
+                
                 <span v-if="isLoading && idx === messages.length - 1 && msg.role === 'model'" class="cursor-blink">|</span>
               </div>
             </div>
-
           </div>
           
           <div v-if="isThinking" class="msg-row model fade-in">
@@ -186,14 +186,15 @@
 import { ref, nextTick, onMounted, computed, watch } from 'vue'
 import { marked } from 'marked'
 import { useRouter, useRoute } from 'vue-router'
-import api from '../services/api' // INTEGRASI API BACKEND
+import api from '../services/api' 
 
 marked.setOptions({ breaks: true, gfm: true })
 const router = useRouter()
 const route = useRoute()
 
 // --- API Configuration ---
-const API_KEY = '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'
+// Gunakan key ini untuk model AI, token backend diambil otomatis dari localstorage
+const OPENROUTER_KEY = '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'
 
 // --- State ---
 const isSidebarOpen = ref(false)
@@ -206,13 +207,11 @@ const chatBox = ref(null)
 const savedChats = ref([])
 const currentChatId = ref(null)
 
-// --- User Profile State ---
 const userName = ref('User Dev')
 const userTier = ref('Free')
 const userAvatar = ref('')
 const defaultAvatar = 'https://ui-avatars.com/api/?name=User&background=6366f1&color=fff'
 
-// --- Model Selection ---
 const availableModels = [
   { id: 'mistralai/devstral-2512:free', name: 'devstral 2512' },
   { id: 'xiaomi/mimo-v2-flash:free', name: 'mimo v2 flash' },
@@ -222,9 +221,7 @@ const availableModels = [
 const selectedModel = ref(availableModels[0].id)
 const currentModelName = computed(() => availableModels.find(m => m.id === selectedModel.value)?.name)
 
-// --- Lifecycle & Auth ---
 onMounted(async () => {
-  // Load User Data
   const userStr = localStorage.getItem('userData')
   if (userStr) {
     const user = JSON.parse(userStr)
@@ -233,29 +230,23 @@ onMounted(async () => {
     userAvatar.value = user.avatar
   }
 
-  // Load History from MongoDB via API
+  // Load History (Jika gagal, diam saja/log console)
   await refreshSavedChats()
 
-  // Handle URL Load
-  if (route.params.id) {
-    await loadChat(route.params.id)
-  }
+  if (route.params.id) await loadChat(route.params.id)
   if (route.query.model) {
     const modelExists = availableModels.find(m => m.id === route.query.model)
     if (modelExists) selectedModel.value = route.query.model
   }
 })
 
-// Watch route changes
 watch(() => route.params.id, (newId) => {
-  if (newId) {
-    loadChat(newId)
-  } else {
-    resetView()
-  }
+  if (newId) loadChat(newId)
+  else resetView()
 })
 
 const handleLogout = () => {
+  // Logout Manual
   localStorage.removeItem('isAuth')
   localStorage.removeItem('token')
   localStorage.removeItem('userData')
@@ -266,7 +257,6 @@ const handleLogout = () => {
 const refreshSavedChats = async () => {
   try {
     const res = await api.getChats()
-    // Map _id (mongo) to id (frontend)
     savedChats.value = res.data.map(c => ({
       id: c._id,
       title: c.title,
@@ -274,13 +264,12 @@ const refreshSavedChats = async () => {
       model: c.model
     }))
   } catch (e) {
-    console.error("Failed to load history")
+    console.error("History sync failed (Auth issue or Network)", e)
+    // Tidak logout paksa, hanya tidak tampil history
   }
 }
 
-const createNewChat = () => {
-  router.push({ name: 'chat', query: { model: selectedModel.value } })
-}
+const createNewChat = () => router.push({ name: 'chat', query: { model: selectedModel.value } })
 
 const resetView = () => {
   currentChatId.value = null
@@ -295,12 +284,9 @@ const loadChat = async (id) => {
     messages.value = chat.messages
     if (chat.model) selectedModel.value = chat.model
     isSidebarOpen.value = false
-    
-    if (route.params.id !== id) {
-      router.replace({ name: 'chat', params: { id: id }, query: { model: chat.model } })
-    }
+    if (route.params.id !== id) router.replace({ name: 'chat', params: { id: id }, query: { model: chat.model } })
   } else {
-    // Jika tidak ada di local state, coba fetch atau redirect
+    // Fallback jika belum terload atau invalid id
     router.push('/chat')
   }
 }
@@ -309,15 +295,13 @@ const deleteChat = async (id) => {
   try {
     await api.deleteChat(id)
     savedChats.value = savedChats.value.filter(c => c.id !== id)
-    if (currentChatId.value === id) {
-      router.push('/chat')
-    }
+    if (currentChatId.value === id) router.push('/chat')
   } catch (e) {
-    alert("Failed to delete chat")
+    alert("Failed to delete. Auth error?")
   }
 }
 
-// --- Chat Functions ---
+// --- Chat Core ---
 const selectModel = (model) => {
   selectedModel.value = model.id
   isModelMenuOpen.value = false
@@ -343,7 +327,7 @@ const sendMessage = async () => {
   input.value = ''
   messages.value.push({ role: 'user', text: userText })
   
-  // Save Chat Init (ke MongoDB via API)
+  // Try Save Init (Silently fail if auth error, app continues)
   try {
     const res = await api.saveChat({
        id: currentChatId.value,
@@ -354,9 +338,11 @@ const sendMessage = async () => {
     if (!currentChatId.value && res.data._id) {
        currentChatId.value = res.data._id
        router.replace({ params: { id: res.data._id } })
-       refreshSavedChats() // update sidebar
+       refreshSavedChats()
     }
-  } catch(e) {}
+  } catch(e) {
+    console.warn("Auto-save init failed (Auth/Network issue). Chat continuing locally.")
+  }
 
   isLoading.value = true
   isThinking.value = true 
@@ -367,10 +353,11 @@ const sendMessage = async () => {
       .filter(m => !m.isError)
       .map(msg => ({ role: msg.role === 'model' ? 'assistant' : 'user', content: msg.text }))
 
+    // Request ke AI Model (Independent dari Backend Database)
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': window.location.origin,
         'X-Title': 'Wanzofc Dev'
@@ -382,7 +369,7 @@ const sendMessage = async () => {
       })
     })
 
-    if (!response.ok) throw new Error(`API Error: ${response.status}`)
+    if (!response.ok) throw new Error(`AI Error: ${response.status}`)
     if (!response.body) throw new Error('ReadableStream not supported.')
 
     const reader = response.body.getReader()
@@ -420,7 +407,7 @@ const sendMessage = async () => {
       }
     }
     
-    // Save Chat Final (ke MongoDB)
+    // Save Final (Silently fail if auth error)
     await api.saveChat({
        id: currentChatId.value,
        title: messages.value[0].text.substring(0, 30),
@@ -431,8 +418,8 @@ const sendMessage = async () => {
   } catch (error) {
     isThinking.value = false
     let errorText = `Error: ${error.message}`
-    if (error.message.includes("401")) errorText = "auth failed: check key."
     
+    // Tampilkan Error di Bubble, BUKAN Redirect
     const lastMsg = messages.value[messages.value.length - 1]
     if (lastMsg && lastMsg.role === 'model' && !lastMsg.text) {
       lastMsg.text = errorText
@@ -448,10 +435,9 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
-/* Vibe: Clean, Dark, Lowercase, Responsive */
 .chat-layout { display: flex; height: 100vh; background: #0f172a; color: #e2e8f0; position: relative; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; text-transform: lowercase; }
 
-/* === SIDEBAR === */
+/* Sidebar */
 .sidebar { width: 280px; background: #020617; border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; position: fixed; height: 100%; z-index: 100; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .sidebar.open { transform: translateX(0); }
 .sidebar-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 99; }
@@ -474,7 +460,6 @@ const sendMessage = async () => {
 .history-item:hover .delete-chat-btn { opacity: 1; }
 .delete-chat-btn:hover { color: #ef4444; }
 
-/* Sidebar Footer Profile */
 .sidebar-footer { padding: 15px; border-top: 1px solid rgba(255,255,255,0.05); background: #020617; }
 .user-card-enhanced { background: #0f172a; border-radius: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.05); }
 .user-info-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -489,12 +474,10 @@ const sendMessage = async () => {
 .action-btn-small:hover { background: rgba(255,255,255,0.1); color: white; }
 .action-btn-small.logout:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
-/* === MAIN CONTENT === */
 .main-content { flex: 1; display: flex; flex-direction: column; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); width: 100%; }
 .top-bar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); z-index: 10; width: 100%; box-sizing: border-box; }
 .menu-trigger { font-size: 1.2rem; background: transparent; color: white; margin-right: 15px; }
 
-/* Model Selector */
 .model-dropdown-wrapper { position: relative; }
 .model-selector-btn { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.08); padding: 8px 16px; border-radius: 20px; color: #cbd5e1; font-size: 0.9rem; transition: 0.2s; border: 1px solid transparent; min-width: 160px; justify-content: space-between; }
 .model-selector-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.1); }
@@ -508,7 +491,6 @@ const sendMessage = async () => {
 .model-id { font-size: 0.7rem; color: #64748b; font-family: monospace; margin-top: 2px; }
 .fa-check { color: #22c55e; }
 
-/* Chat Area & RESPONSIVENESS FIX */
 .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
 .message-list { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 20px; }
 .msg-row { display: flex; gap: 15px; width: 100%; }
@@ -520,6 +502,7 @@ const sendMessage = async () => {
 .msg-bubble-wrapper { max-width: 85%; min-width: 0; }
 .msg-bubble { background: #1e293b; padding: 15px 20px; border-radius: 12px; line-height: 1.6; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.05); overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
 .user .msg-bubble { background: #334155; border-color: transparent; }
+.error-content { color: #ef4444; font-weight: 500; display: flex; gap: 8px; align-items: center; }
 
 .md-content :deep(p) { margin-bottom: 10px; }
 .md-content :deep(p:last-child) { margin-bottom: 0; }
