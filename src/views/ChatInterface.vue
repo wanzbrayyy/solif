@@ -1,93 +1,107 @@
 <template>
-  <div class="chat-wrapper">
+  <div class="chat-app animate__animated animate__fadeIn">
+    <!-- Chat Header -->
     <header class="chat-header">
-      <div class="header-left">
-        <button class="menu-btn"><i class="fa-solid fa-bars"></i></button>
-        <div class="url-display">
-          <i class="fa-solid fa-lock"></i>
-          <span>zeroku.vercel.app</span>
+      <div class="left-section">
+        <button class="icon-btn animate__animated animate__hover-pulse">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="url-badge animate__animated animate__slideInDown">
+          <i class="fa-solid fa-lock"></i> wanzofc.dev/chat
         </div>
       </div>
-      <div class="header-right">
-        <button class="donate-pill">
+      <div class="right-section">
+        <button class="donate-btn animate__animated animate__rubberBand animate__delay-2s">
           <i class="fa-solid fa-heart"></i> Donate
         </button>
-        <button class="edit-btn"><i class="fa-regular fa-pen-to-square"></i></button>
+        <button class="icon-btn">
+          <i class="fa-regular fa-pen-to-square"></i>
+        </button>
       </div>
     </header>
 
+    <!-- Main Chat Area -->
     <main class="chat-viewport">
-      <div v-if="messages.length === 0" class="welcome-container">
-        <div class="avatar-icon">
-          <i class="fa-solid fa-graduation-cap"></i>
+      
+      <!-- Welcome Screen (Initial State) -->
+      <div v-if="messages.length === 0" class="welcome-screen">
+        <div class="logo-wrapper animate__animated animate__zoomIn">
+          <i class="fa-solid fa-graduation-cap big-icon"></i>
         </div>
-        <h2>Hello, I'm <span class="name-highlight">Wanzofc</span></h2>
-        <p class="subtitle">How can I help you today?</p>
+        <h2 class="animate__animated animate__fadeInUp animate__delay-1s">
+          Hello, I'm <span class="highlight">Wanzofc</span>
+        </h2>
+        <p class="animate__animated animate__fadeInUp animate__delay-1s">
+          How can I help you today?
+        </p>
 
-        <div class="cards-grid">
-          <button @click="fillInput('Help me write a story about AI')" class="action-card">
-            <i class="fa-solid fa-pen-nib card-icon"></i>
-            <span>Help me write</span>
-          </button>
-          <button @click="fillInput('Explain Vue 3 composition API')" class="action-card">
-            <i class="fa-solid fa-book-open card-icon"></i>
-            <span>Learn about</span>
-          </button>
-          <button @click="fillInput('Create a Python script for scraping')" class="action-card">
-            <i class="fa-solid fa-code card-icon"></i>
-            <span>Write code</span>
-          </button>
-          <button @click="fillInput('Solve 2x + 5 = 15')" class="action-card">
-            <i class="fa-solid fa-brain card-icon"></i>
-            <span>Problem solve</span>
-          </button>
-          <button class="action-card full">
-            <i class="fa-regular fa-comments card-icon"></i>
-            <span>Natural chat</span>
-          </button>
+        <div class="suggestion-cards animate__animated animate__fadeInUp animate__delay-2s">
+          <div @click="sendSuggestion('Help me write a Python script')" class="s-card hover-scale">
+            <i class="fa-solid fa-pen-nib"></i> Help me write
+          </div>
+          <div @click="sendSuggestion('Explain React Hooks')" class="s-card hover-scale">
+            <i class="fa-solid fa-book-open"></i> Learn about
+          </div>
+          <div @click="sendSuggestion('Debug this Vue component')" class="s-card hover-scale">
+            <i class="fa-solid fa-bug"></i> Problem solve
+          </div>
+          <div @click="sendSuggestion('Generate a cool CSS animation')" class="s-card hover-scale">
+            <i class="fa-solid fa-code"></i> Write code
+          </div>
         </div>
       </div>
 
-      <div v-else class="messages-container" ref="msgContainer">
-        <div v-for="(msg, idx) in messages" :key="idx" :class="['message-row', msg.role]">
-          <div v-if="msg.role === 'model'" class="bot-avatar">
+      <!-- Chat History (Active State) -->
+      <div v-else class="messages-list" ref="chatContainer">
+        <div v-for="(msg, index) in messages" :key="index" 
+             :class="['message-row', msg.role, 'animate__animated', 'animate__fadeInUp']">
+          
+          <div v-if="msg.role === 'model'" class="avatar bot">
             <i class="fa-solid fa-graduation-cap"></i>
           </div>
-          <div class="bubble">
-            <div v-html="renderMarkdown(msg.text)"></div>
+          
+          <div class="message-bubble">
+            <div class="markdown-body" v-html="renderContent(msg.text)"></div>
+          </div>
+          
+          <div v-if="msg.role === 'user'" class="avatar user">
+            <i class="fa-solid fa-user"></i>
           </div>
         </div>
-        <div v-if="isThinking" class="message-row model">
-          <div class="bot-avatar"><i class="fa-solid fa-graduation-cap"></i></div>
-          <div class="bubble thinking">
-            <span></span><span></span><span></span>
+
+        <div v-if="isLoading" class="message-row model animate__animated animate__pulse animate__infinite">
+          <div class="avatar bot"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div class="message-bubble loading">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
           </div>
         </div>
       </div>
 
-      <div class="input-area">
-        <div class="input-box">
+      <!-- Input Area -->
+      <div class="input-container animate__animated animate__slideInUp">
+        <div class="input-wrapper">
           <input 
-            v-model="userQuery" 
-            @keyup.enter="sendRequest"
+            v-model="inputMessage" 
+            @keyup.enter="sendMessage"
             type="text" 
             placeholder="Type a message... (@ for tools)"
           >
-          <div class="input-tools">
+          <div class="input-actions">
             <button class="tool-btn"><i class="fa-solid fa-plus"></i></button>
-            <button class="tool-btn"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
             <button 
-              @click="sendRequest" 
+              @click="sendMessage" 
               class="send-btn" 
-              :class="{ active: userQuery.length > 0 }"
-              :disabled="!userQuery || isThinking"
+              :class="{ 'active': inputMessage.length > 0 }"
+              :disabled="isLoading"
             >
               <i class="fa-solid fa-arrow-up"></i>
             </button>
           </div>
         </div>
-        <div class="footer-info">
-          Built with <i class="fa-solid fa-heart"></i> by AortaVx
+        <div class="footer-text">
+          Built with <i class="fa-solid fa-heart fa-beat" style="color: #ef4444;"></i> by Wanzofc Dev
         </div>
       </div>
     </main>
@@ -97,42 +111,44 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 
-const userQuery = ref('')
+const inputMessage = ref('')
 const messages = ref([])
-const isThinking = ref(false)
-const msgContainer = ref(null)
+const isLoading = ref(false)
+const chatContainer = ref(null)
 
 const API_KEY = 'AIzaSyDaasWhrWeDS2xJj08VUhmTjnaSYB1U5Ys'
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`
 
-const fillInput = (text) => {
-  userQuery.value = text
+const sendSuggestion = (text) => {
+  inputMessage.value = text
+  sendMessage()
 }
 
 const scrollToBottom = () => {
   nextTick(() => {
-    if (msgContainer.value) {
-      msgContainer.value.scrollTop = msgContainer.value.scrollHeight
+    if (chatContainer.value) {
+      chatContainer.value.scrollTop = chatContainer.value.scrollHeight
     }
   })
 }
 
-const renderMarkdown = (text) => {
+// Simple Markdown Parser
+const renderContent = (text) => {
   if (!text) return ''
-  let formatted = text
+  return text
     .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-    .replace(/```([\s\S]*?)```/g, '<div class="code-block">$1</div>')
-  return formatted
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
 }
 
-const sendRequest = async () => {
-  if (!userQuery.value.trim()) return
+const sendMessage = async () => {
+  if (!inputMessage.value.trim() || isLoading.value) return
 
-  const text = userQuery.value
-  messages.value.push({ role: 'user', text: text })
-  userQuery.value = ''
-  isThinking.value = true
+  const userText = inputMessage.value
+  messages.value.push({ role: 'user', text: userText })
+  inputMessage.value = ''
+  isLoading.value = true
   scrollToBottom()
 
   try {
@@ -140,76 +156,84 @@ const sendRequest = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: text }] }]
+        contents: [{ parts: [{ text: userText }] }]
       })
     })
 
     const data = await response.json()
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't understand that."
+    const botReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I didn't get that."
     
-    messages.value.push({ role: 'model', text: reply })
+    messages.value.push({ role: 'model', text: botReply })
   } catch (error) {
-    messages.value.push({ role: 'model', text: "Error connecting to AI service." })
+    messages.value.push({ role: 'model', text: "Error connecting to AI server." })
   } finally {
-    isThinking.value = false
+    isLoading.value = false
     scrollToBottom()
   }
 }
 </script>
 
 <style scoped>
-.chat-wrapper {
+.chat-app {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: var(--bg-chat);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+  color: #1e293b;
 }
 
+/* Header */
 .chat-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  background: rgba(255, 255, 255, 0.6);
+  padding: 15px 20px;
+  background: rgba(255,255,255,0.7);
   backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
-.header-left, .header-right {
+.left-section, .right-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.menu-btn, .edit-btn {
-  background: transparent;
+.icon-btn {
+  background: none;
   font-size: 1.2rem;
-  color: #334155;
+  color: #475569;
   padding: 8px;
+  border-radius: 50%;
 }
 
-.url-display {
+.icon-btn:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.url-badge {
   background: #f1f5f9;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #64748b;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.donate-pill {
+.donate-btn {
   background: #fee2e2;
   color: #ef4444;
-  padding: 6px 16px;
+  padding: 8px 16px;
   border-radius: 20px;
   font-weight: 600;
   font-size: 0.9rem;
   display: flex;
-  gap: 6px;
   align-items: center;
+  gap: 6px;
 }
 
+/* Viewport */
 .chat-viewport {
   flex: 1;
   display: flex;
@@ -218,148 +242,154 @@ const sendRequest = async () => {
   position: relative;
 }
 
-.welcome-container {
+/* Welcome Screen */
+.welcome-screen {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  animation: fadeUp 0.6s ease;
+  text-align: center;
 }
 
-.avatar-icon {
-  font-size: 3.5rem;
+.big-icon {
+  font-size: 4rem;
   color: #1e293b;
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
-h2 {
-  font-size: 2rem;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
+.welcome-screen h2 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: #0f172a;
 }
 
-.name-highlight {
-  border-bottom: 3px solid #1e293b;
+.highlight {
+  position: relative;
+  z-index: 1;
 }
 
-.subtitle {
-  color: #64748b;
-  font-size: 1.1rem;
-  margin-bottom: 3rem;
+.highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  width: 100%;
+  height: 10px;
+  background: #a5b4fc;
+  opacity: 0.5;
+  z-index: -1;
 }
 
-.cards-grid {
+.suggestion-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 15px;
+  margin-top: 40px;
   width: 100%;
   max-width: 600px;
 }
 
-.action-card {
-  background: var(--card-white);
-  padding: 16px;
-  border-radius: 12px;
+.s-card {
+  background: rgba(255,255,255,0.6);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.8);
+  cursor: pointer;
   text-align: left;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.95rem;
-  color: #334155;
-  transition: transform 0.2s, background 0.2s;
+  gap: 12px;
+  font-weight: 500;
+  transition: all 0.3s;
 }
 
-.action-card:hover {
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-2px);
+.s-card:hover {
+  background: white;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
 }
 
-.card-icon {
-  color: #8b5cf6;
-}
+.s-card i { color: #6366f1; }
 
-.full {
-  grid-column: span 2;
-  justify-content: center;
-}
-
-.messages-container {
+/* Messages */
+.messages-list {
   flex: 1;
-  padding: 20px;
   overflow-y: auto;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   width: 100%;
 }
 
 .message-row {
   display: flex;
-  gap: 12px;
-  width: 100%;
+  gap: 15px;
+  max-width: 100%;
 }
 
 .message-row.user {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
 }
 
-.bot-avatar {
-  width: 36px;
-  height: 36px;
-  background: white;
+.avatar {
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1e293b;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   flex-shrink: 0;
 }
 
-.bubble {
+.bot { background: white; color: #0f172a; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.user { background: #3b82f6; color: white; }
+
+.message-bubble {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 20px;
+  border-top-left-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   max-width: 80%;
-  padding: 12px 18px;
-  border-radius: 18px;
-  line-height: 1.5;
-  font-size: 1rem;
+  line-height: 1.6;
 }
 
-.user .bubble {
+.user .message-bubble {
   background: #3b82f6;
   color: white;
-  border-bottom-right-radius: 4px;
+  border-radius: 20px;
+  border-top-right-radius: 4px;
 }
 
-.model .bubble {
-  background: white;
-  color: #1e293b;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.thinking {
-  display: flex;
-  gap: 4px;
-  align-items: center;
+.markdown-body :deep(pre) {
+  background: #1e293b;
+  color: #f8fafc;
   padding: 15px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 10px 0;
 }
 
-.thinking span {
-  width: 6px;
-  height: 6px;
-  background: #94a3b8;
-  border-radius: 50%;
-  animation: bounce 1.4s infinite ease-in-out both;
+/* Loading Dots */
+.loading { display: flex; gap: 5px; padding: 15px; }
+.typing-dot {
+  width: 6px; height: 6px; background: #94a3b8; border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
-.thinking span:nth-child(1) { animation-delay: -0.32s; }
-.thinking span:nth-child(2) { animation-delay: -0.16s; }
-
-.input-area {
+/* Input Area */
+.input-container {
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -367,85 +397,75 @@ h2 {
   width: 100%;
 }
 
-.input-box {
+.input-wrapper {
   background: white;
   width: 100%;
   max-width: 700px;
-  border-radius: 28px;
-  padding: 8px 8px 8px 20px;
+  border-radius: 30px;
+  padding: 8px 10px 8px 25px;
   display: flex;
   align-items: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+  transition: box-shadow 0.3s;
 }
 
-.input-box input {
+.input-wrapper:focus-within {
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+}
+
+input {
   flex: 1;
   border: none;
   font-size: 1rem;
-  color: #1e293b;
+  color: #334155;
+  background: transparent;
 }
 
-.input-tools {
+.input-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .tool-btn {
-  background: transparent;
   color: #94a3b8;
-  font-size: 1.1rem;
-  padding: 8px;
-}
-
-.tool-btn:hover {
-  color: #64748b;
+  font-size: 1.2rem;
+  background: none;
 }
 
 .send-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #f1f5f9;
-  color: #cbd5e1;
+  background: #e2e8f0;
+  color: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .send-btn.active {
   background: #3b82f6;
   color: white;
+  transform: rotate(0deg);
 }
 
-.footer-info {
-  margin-top: 12px;
+.send-btn.active:hover {
+  transform: scale(1.1);
+}
+
+.footer-text {
+  margin-top: 15px;
   font-size: 0.75rem;
-  color: #64748b;
+  color: #94a3b8;
 }
 
-.footer-info .fa-heart {
-  color: #ef4444;
+/* Helper Class for Hover Animation */
+.hover-scale {
+  transition: transform 0.2s;
 }
-
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-:deep(.code-block) {
-  background: #1e293b;
-  color: #cbd5e1;
-  padding: 10px;
-  border-radius: 8px;
-  font-family: monospace;
-  margin-top: 5px;
-  white-space: pre-wrap;
+.hover-scale:hover {
+  transform: scale(1.02);
 }
 </style>
