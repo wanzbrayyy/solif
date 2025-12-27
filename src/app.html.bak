@@ -1,9 +1,0 @@
-<template>
-  <require from="./components/nav-bar"></require>
-
-  <nav-bar></nav-bar>
-  
-  <div class="page-content">
-    <router-view></router-view>
-  </div>
-</template>
