@@ -1,0 +1,36 @@
+import axios from 'axios'
+
+// Ganti URL ini dengan URL Backend Vercel Anda yang aktif
+const API_URL = 'https://solid-palm.vercel.app/api' 
+// NOTE: Jika testing local, ganti ke 'http://localhost:3000/api'
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
+// Interceptor untuk menyisipkan token otomatis
+apiClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+export default {
+  // Auth
+  register(data) { return apiClient.post('/auth/register', data) },
+  login(data) { return apiClient.post('/auth/login', data) },
+  verify2FA(data) { return apiClient.post('/auth/verify-2fa', data) },
+  
+  // User Profile
+  updateProfile(data) { return apiClient.put('/user/profile', data) },
+  
+  // Chats
+  getChats() { return apiClient.get('/chats') },
+  saveChat(data) { return apiClient.post('/chats', data) },
+  deleteChat(id) { return apiClient.delete(`/chats/${id}`) }
+}
