@@ -233,28 +233,43 @@ onMounted(async () => {
       userName.value = user.username
       userTier.value = user.tier
       userAvatar.value = user.avatar
-    } catch(e) {
-      console.error("Failed to parse user data from localStorage")
-      handleLogout()
-    }
+    } catch(e) { handleLogout() }
   }
 
   await refreshSavedChats()
 
-  if (route.params && route.params.id) await loadChat(route.params.id)
-  if (route.query && route.query.model) {
-    const modelExists = availableModels.find(m => m.id === route.query.model)
-    if (modelExists) selectedModel.value = route.query.model
+  const routeId = route.params ? route.params.id : null
+  if (routeId) await initializeChatState(routeId)
+  
+  const routeModel = route.query ? route.query.model : null
+  if (routeModel) {
+    const modelExists = availableModels.find(m => m.id === routeModel)
+    if (modelExists) selectedModel.value = routeModel
   }
 })
 
 watch(() => route.params.id, (newId) => {
-  if (newId && newId !== currentChatId.value) {
-    loadChat(newId)
-  } else if (!newId) {
-    resetView()
+  if (newId !== currentChatId.value) {
+    initializeChatState(newId)
   }
 })
+
+const initializeChatState = (chatId) => {
+  if (chatId) {
+    const chat = savedChats.value.find(c => c.id === chatId)
+    if (chat) {
+      currentChatId.value = chat.id
+      messages.value = chat.messages
+      selectedModel.value = chat.model || availableModels[0].id
+      isPublic.value = chat.isPublic || false
+      permissionLevel.value = chat.permissionLevel || 'view'
+    } else {
+      router.push('/chat')
+    }
+  } else {
+    resetView()
+  }
+}
 
 const handleLogout = () => {
   localStorage.clear()
@@ -272,9 +287,7 @@ const refreshSavedChats = async () => {
       isPublic: c.isPublic,
       permissionLevel: c.permissionLevel
     }))
-  } catch (e) {
-    console.error("History sync failed")
-  }
+  } catch (e) { console.error("History sync failed") }
 }
 
 const createNewChat = () => router.push({ name: 'chat', params: { id: undefined }, query: { model: selectedModel.value } })
@@ -287,20 +300,8 @@ const resetView = () => {
   permissionLevel.value = 'view'
 }
 
-const loadChat = async (id) => {
-  const chat = savedChats.value.find(c => c.id === id)
-  if (chat) {
-    currentChatId.value = id
-    messages.value = chat.messages
-    if (chat.model) selectedModel.value = chat.model
-    isPublic.value = chat.isPublic || false
-    permissionLevel.value = chat.permissionLevel || 'view'
-    isSidebarOpen.value = false
-    const currentRouteId = route.params ? route.params.id : null
-    if (currentRouteId !== id) router.replace({ name: 'chat', params: { id: id }, query: { model: chat.model } })
-  } else {
-    router.push('/chat')
-  }
+const loadChat = (id) => {
+  router.push({ name: 'chat', params: { id }, query: { model: selectedModel.value } })
 }
 
 const deleteChat = async (id) => {
@@ -308,9 +309,7 @@ const deleteChat = async (id) => {
     await api.deleteChat(id)
     savedChats.value = savedChats.value.filter(c => c.id !== id)
     if (currentChatId.value === id) router.push('/chat')
-  } catch (e) {
-    alert("Failed to delete chat")
-  }
+  } catch (e) { alert("Failed to delete chat") }
 }
 
 const saveCurrentChat = async () => {
@@ -329,9 +328,7 @@ const saveCurrentChat = async () => {
       router.replace({ params: { id: res.data._id }, query: { model: selectedModel.value } })
       savedChats.value.unshift({ ...payload, id: res.data._id });
     }
-  } catch(e) {
-    console.warn("Auto-save failed")
-  }
+  } catch(e) { console.warn("Auto-save failed") }
 }
 
 const shareChat = () => {
@@ -430,7 +427,6 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
-:root { --primary: #0ea5e9; --secondary: #14b8a6; }
 .chat-layout { display: flex; height: 100vh; background: #0f172a; color: #e2e8f0; font-family: 'Plus Jakarta Sans', sans-serif; text-transform: lowercase; overflow: hidden; }
 .sidebar { width: 280px; background: #020617; border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; position: fixed; height: 100%; z-index: 100; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .sidebar.open { transform: translateX(0); }

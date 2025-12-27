@@ -44,7 +44,7 @@
         <div class="badge-wrapper jack-in-the-box">
           <div class="badge">
             <span class="dot-pulse"></span>
-            v2.0 is now live: experience the speed
+            wanzofc v1 dev
           </div>
         </div>
         
@@ -345,7 +345,7 @@
             <div class="logo-box small"><i class="fa-solid fa-code"></i></div>
             <span>wanzofc dev</span>
           </div>
-          <p>empowering developers with state-of-the-art ai tools. built with passion in indonesia.</p>
+          <p></p>
           <div class="socials">
             <a href="#"><i class="fa-brands fa-twitter"></i></a>
             <a href="#"><i class="fa-brands fa-github"></i></a>
@@ -380,7 +380,7 @@
       </div>
       
       <div class="footer-bottom">
-        <p>&copy; 2025 wanzofc dev. all rights reserved.</p>
+        <p>&copy; 2025 wanzofc dev</p>
         <div class="legal-links">
           <a href="#">privacy policy</a>
           <a href="#">terms of service</a>
