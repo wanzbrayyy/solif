@@ -54,7 +54,7 @@
       <!-- Chat Container -->
       <div class="chat-messages" ref="chatBox">
         
-        <!-- Empty State / Welcome -->
+        <!-- Empty State -->
         <div v-if="messages.length === 0" class="empty-state">
           <div class="ai-avatar zoom-in">
             <i class="fa-solid fa-robot"></i>
@@ -62,11 +62,11 @@
           <h2 class="fade-in">How can <span class="gradient">Wanzofc AI</span> help?</h2>
           
           <div class="suggestion-grid jack-in-the-box">
-            <button @click="sendPrompt('Write a Python script for web scraping')" class="card-sug">
-              <i class="fa-brands fa-python"></i> Python Script
-            </button>
             <button @click="sendPrompt('Explain Quantum Computing simply')" class="card-sug">
               <i class="fa-solid fa-atom"></i> Explain Concept
+            </button>
+            <button @click="sendPrompt('Write a Python script for web scraping')" class="card-sug">
+              <i class="fa-brands fa-python"></i> Python Script
             </button>
             <button @click="sendPrompt('Debug this React code snippet')" class="card-sug">
               <i class="fa-brands fa-react"></i> Debug Code
@@ -80,22 +80,29 @@
         <!-- Message List -->
         <div v-else class="message-list">
           <div v-for="(msg, idx) in messages" :key="idx" :class="['msg-row', msg.role, 'slide-in']">
+            
             <div class="msg-avatar">
               <i v-if="msg.role === 'model'" class="fa-solid fa-robot"></i>
               <i v-else class="fa-solid fa-user"></i>
             </div>
+            
             <div class="msg-bubble">
-              <!-- Error State Display -->
+              <!-- Error Message -->
               <div v-if="msg.isError" class="error-content">
                 <i class="fa-solid fa-triangle-exclamation"></i> {{ msg.text }}
               </div>
-              <!-- Normal Markdown Content -->
+              
+              <!-- Markdown Content -->
               <div v-else class="md-content" v-html="renderMarkdown(msg.text)"></div>
+              
+              <!-- Cursor Animation (Only for last message while loading) -->
+              <span v-if="isLoading && idx === messages.length - 1 && msg.role === 'model'" class="cursor-blink">|</span>
             </div>
+
           </div>
           
-          <!-- Loading Indicator -->
-          <div v-if="isLoading" class="msg-row model fade-in">
+          <!-- Loading Dots (Only visible BEFORE stream starts) -->
+          <div v-if="isThinking" class="msg-row model fade-in">
             <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
             <div class="msg-bubble loading-bubble">
               <div class="dot-flashing"></div>
@@ -116,7 +123,7 @@
             ref="textarea"
           ></textarea>
           <button @click="sendMessage" :disabled="isLoading || !input.trim()" class="send-btn">
-            <i v-if="isLoading" class="fa-solid fa-spinner fa-spin"></i>
+            <i v-if="isLoading" class="fa-solid fa-square fa-fade"></i>
             <i v-else class="fa-solid fa-paper-plane"></i>
           </button>
         </div>
@@ -130,63 +137,50 @@
 import { ref, nextTick } from 'vue'
 import { marked } from 'marked'
 
-// Setup Marked for Code Highlighting
-marked.setOptions({
-  breaks: true,
-  gfm: true
-})
+// Setup Marked
+marked.setOptions({ breaks: true, gfm: true })
 
 const isSidebarOpen = ref(false)
 const input = ref('')
 const messages = ref([])
-const isLoading = ref(false)
+const isLoading = ref(false) // Total proses (termasuk streaming)
+const isThinking = ref(false) // Hanya saat menunggu byte pertama
 const chatBox = ref(null)
 
-// --- API CONFIGURATION ---
-// Menggunakan API Key yang Anda berikan
-const API_KEY = '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'
+// API Config
+const API_KEY = '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'
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
-const toggleSidebar = () => {
-  isSidebarOpen.value = !isSidebarOpen.value
-}
+const toggleSidebar = () => { isSidebarOpen.value = !isSidebarOpen.value }
+const resetChat = () => { messages.value = []; isSidebarOpen.value = false }
+const sendPrompt = (text) => { input.value = text; sendMessage() }
 
-const resetChat = () => {
-  messages.value = []
-  isSidebarOpen.value = false
-}
-
-const sendPrompt = (text) => {
-  input.value = text
-  sendMessage()
-}
-
+// Fungsi Render Markdown yang aman
 const renderMarkdown = (text) => {
-  try {
-    return marked.parse(text)
-  } catch (e) {
-    return text
-  }
+  if (!text) return ''
+  try { return marked.parse(text) } catch (e) { return text }
 }
 
 const scrollToBottom = () => {
-  nextTick(() => {
-    if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight
-  })
+  nextTick(() => { if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight })
 }
 
-// FUNGSI SEND MESSAGE DENGAN FETCH (PENGGANTI AXIOS/OPENAI SDK)
+// === LOGIKA STREAMING UTAMA ===
 const sendMessage = async () => {
   if (!input.value.trim() || isLoading.value) return
 
   const userText = input.value
-  messages.value.push({ role: 'user', text: userText })
   input.value = ''
+  
+  // 1. Tambahkan pesan user
+  messages.value.push({ role: 'user', text: userText })
+  
   isLoading.value = true
+  isThinking.value = true // Tampilkan loading dots
   scrollToBottom()
 
   try {
-    // Siapkan history untuk API (role: 'assistant' untuk bot)
+    // Siapkan history
     const apiMessages = messages.value
       .filter(m => !m.isError)
       .map(msg => ({
@@ -194,48 +188,85 @@ const sendMessage = async () => {
         content: msg.text
       }))
 
-    // REQUES LANGSUNG (SAMA SEPERTI SNIPPET AXIOS ANDA)
+    // 2. Fetch dengan stream: true
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`, // Perhatikan: Tanpa $
+        'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin, // Otomatis ambil URL site
+        'HTTP-Referer': window.location.origin,
         'X-Title': 'Wanzofc Dev'
       },
       body: JSON.stringify({
         model: "kwaipilot/kat-coder-pro:free",
-        messages: apiMessages
+        messages: apiMessages,
+        stream: true // WAJIB TRUE UNTUK EFEK MENGETIK
       })
     })
 
-    const data = await response.json()
+    if (!response.ok) throw new Error(`API Error: ${response.status}`)
+    if (!response.body) throw new Error('ReadableStream not supported.')
 
-    // Handle Error dari API OpenRouter
-    if (!response.ok) {
-      // Cek kode error spesifik
-      const errorMsg = data.error?.message || `API Error: ${response.status}`
-      throw new Error(errorMsg)
+    // 3. Siapkan Reader
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder("utf-8")
+    
+    // Hapus loading dots, buat bubble kosong untuk bot
+    isThinking.value = false 
+    messages.value.push({ role: 'model', text: '' })
+    const botMsgIndex = messages.value.length - 1
+
+    let buffer = '' // Penampung potongan JSON
+
+    // 4. Loop Membaca Stream
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value, { stream: true })
+      buffer += chunk
+      
+      const lines = buffer.split('\n')
+      buffer = lines.pop() // Simpan sisa baris terakhir yang belum lengkap
+
+      for (const line of lines) {
+        const trimmedLine = line.trim()
+        if (!trimmedLine || trimmedLine === 'data: [DONE]') continue
+        
+        if (trimmedLine.startsWith('data: ')) {
+          try {
+            const jsonStr = trimmedLine.replace('data: ', '')
+            const json = JSON.parse(jsonStr)
+            const content = json.choices[0]?.delta?.content || ''
+            
+            // Append teks ke pesan terakhir
+            if (content) {
+              messages.value[botMsgIndex].text += content
+              scrollToBottom()
+            }
+          } catch (e) {
+            // Abaikan chunk error parsing JSON (biasanya chunk terpotong)
+          }
+        }
+      }
     }
-
-    // Ambil respon sukses
-    const botText = data.choices?.[0]?.message?.content || "No response received."
-    messages.value.push({ role: 'model', text: botText })
 
   } catch (error) {
-    console.error("Connection Error:", error)
+    console.error("Stream Error:", error)
+    isThinking.value = false // Matikan loading dots jika error sebelum stream mulai
     
-    // Pesan Error User Friendly
-    let displayError = `Error: ${error.message}`
-    if (error.message.includes("401") || error.message.includes("auth")) {
-      displayError = "Authentication Failed: Check API Key."
-    }
+    let errorText = `Error: ${error.message}`
+    if (error.message.includes("401")) errorText = "Authentication Failed: Check API Key."
 
-    messages.value.push({ 
-      role: 'model', 
-      text: displayError,
-      isError: true 
-    })
+    // Jika bot bubble sudah ada, replace isinya dengan error
+    // Jika belum, buat bubble baru
+    const lastMsg = messages.value[messages.value.length - 1]
+    if (lastMsg && lastMsg.role === 'model' && !lastMsg.text) {
+      lastMsg.text = errorText
+      lastMsg.isError = true
+    } else {
+      messages.value.push({ role: 'model', text: errorText, isError: true })
+    }
   } finally {
     isLoading.value = false
     scrollToBottom()
@@ -244,285 +275,86 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
-.chat-layout {
-  display: flex;
-  height: 100vh;
-  background: #0f172a; 
-  color: #e2e8f0;
-  position: relative;
-  overflow: hidden;
+/* Tambahan CSS Cursor Blink */
+.cursor-blink {
+  display: inline-block;
+  width: 6px;
+  background: #a855f7;
+  animation: blink 1s step-end infinite;
 }
 
-/* Sidebar Styling */
-.sidebar {
-  width: 280px;
-  background: #020617;
-  border-right: 1px solid rgba(255,255,255,0.05);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  height: 100%;
-  z-index: 100;
-  transform: translateX(-100%);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+/* --- STYLE ASLI --- */
+.chat-layout { display: flex; height: 100vh; background: #0f172a; color: #e2e8f0; position: relative; overflow: hidden; }
+
+/* Sidebar */
+.sidebar { width: 280px; background: #020617; border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; position: fixed; height: 100%; z-index: 100; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .sidebar.open { transform: translateX(0); }
+.sidebar-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 99; }
+@media (min-width: 1024px) { .sidebar { position: relative; transform: translateX(0); } .sidebar-overlay { display: none; } .menu-trigger { display: none; } }
 
-.sidebar-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(2px);
-  z-index: 99;
-}
-
-@media (min-width: 1024px) {
-  .sidebar { position: relative; transform: translateX(0); }
-  .sidebar-overlay { display: none; }
-  .menu-trigger { display: none; }
-}
-
-.sidebar-header {
-  padding: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
+.sidebar-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; letter-spacing: 1px; }
 .new-chat-btn-wrapper { padding: 0 15px 20px; }
-.new-chat-btn {
-  width: 100%;
-  background: var(--primary);
-  color: white;
-  padding: 12px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-weight: 600;
-  transition: 0.2s;
-}
+.new-chat-btn { width: 100%; background: var(--primary); color: white; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; transition: 0.2s; }
 .new-chat-btn:hover { background: #4f46e5; }
-
 .history-list { flex: 1; padding: 10px; overflow-y: auto; }
 .history-label { font-size: 0.75rem; color: #64748b; margin-bottom: 10px; padding-left: 10px; }
-.history-item {
-  padding: 10px 12px;
-  border-radius: 6px;
-  color: #cbd5e1;
-  font-size: 0.9rem;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  cursor: pointer;
-  transition: 0.2s;
-}
+.history-item { padding: 10px 12px; border-radius: 6px; color: #cbd5e1; font-size: 0.9rem; display: flex; gap: 10px; align-items: center; cursor: pointer; transition: 0.2s; }
 .history-item:hover { background: rgba(255,255,255,0.05); }
-
 .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); }
 .user-profile { display: flex; align-items: center; gap: 10px; }
 .avatar-circle { width: 32px; height: 32px; background: #334155; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
 
 /* Main Content */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-}
-
-.top-bar {
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(10px);
-  z-index: 10;
-}
-
+.main-content { flex: 1; display: flex; flex-direction: column; position: relative; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); }
+.top-bar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); z-index: 10; }
 .menu-trigger { font-size: 1.2rem; background: transparent; color: white; padding: 5px; margin-right: 15px; }
-
-.model-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.05);
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  color: #cbd5e1;
-}
+.model-selector { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: #cbd5e1; }
 .dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; }
-
 .icon-link { color: #94a3b8; font-size: 1.2rem; transition: 0.2s; }
 .icon-link:hover { color: white; }
 
 /* Chat Area */
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.empty-state {
-  margin-top: 5vh;
-  text-align: center;
-  max-width: 600px;
-  width: 100%;
-}
-
-.ai-avatar {
-  width: 70px;
-  height: 70px;
-  background: white;
-  color: var(--primary);
-  border-radius: 50%;
-  margin: 0 auto 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  box-shadow: 0 0 30px rgba(255,255,255,0.1);
-}
-
-.suggestion-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 40px;
-}
-
-.card-sug {
-  background: #1e293b;
-  border: 1px solid rgba(255,255,255,0.05);
-  padding: 15px;
-  border-radius: 12px;
-  color: #cbd5e1;
-  text-align: left;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  transition: 0.2s;
-}
+.chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+.empty-state { margin-top: 5vh; text-align: center; max-width: 600px; width: 100%; }
+.ai-avatar { width: 70px; height: 70px; background: white; color: var(--primary); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 0 30px rgba(255,255,255,0.1); }
+.suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px; }
+.card-sug { background: #1e293b; border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; color: #cbd5e1; text-align: left; display: flex; gap: 10px; align-items: center; transition: 0.2s; }
 .card-sug:hover { background: #334155; transform: translateY(-3px); }
 
 /* Messages */
 .message-list { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 20px; }
-
 .msg-row { display: flex; gap: 15px; width: 100%; }
 .msg-row.user { flex-direction: row-reverse; }
-
 .msg-avatar { width: 36px; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .model .msg-avatar { background: var(--primary); color: white; }
 .user .msg-avatar { background: #475569; color: white; }
 
-.msg-bubble {
-  background: #1e293b;
-  padding: 15px 20px;
-  border-radius: 12px;
-  max-width: 85%;
-  line-height: 1.6;
-  font-size: 0.95rem;
-  border: 1px solid rgba(255,255,255,0.05);
-  overflow-wrap: break-word;
-}
+.msg-bubble { background: #1e293b; padding: 15px 20px; border-radius: 12px; max-width: 85%; line-height: 1.6; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.05); overflow-wrap: break-word; }
 .user .msg-bubble { background: #334155; border-color: transparent; }
-
 .error-content { color: #ef4444; font-weight: 500; display: flex; gap: 8px; align-items: center; }
 
 /* Input */
-.input-area {
-  padding: 20px;
-  background: #0f172a;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.input-box {
-  width: 100%;
-  max-width: 800px;
-  background: #1e293b;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 10px 15px;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  transition: 0.3s;
-}
-
+.input-area { padding: 20px; background: #0f172a; display: flex; flex-direction: column; align-items: center; }
+.input-box { width: 100%; max-width: 800px; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 10px; transition: 0.3s; }
 .input-box:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
-
-textarea {
-  flex: 1;
-  background: transparent;
-  border: none;
-  resize: none;
-  color: white;
-  padding: 10px 0;
-  min-height: 24px;
-}
-
-.send-btn {
-  background: var(--primary);
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: 0.2s;
-}
+textarea { flex: 1; background: transparent; border: none; resize: none; color: white; padding: 10px 0; min-height: 24px; }
+.send-btn { background: var(--primary); color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
 .send-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-
 .credits { margin-top: 10px; font-size: 0.7rem; color: #64748b; }
 
 /* Markdown Styles */
-.md-content :deep(pre) {
-  background: #020617;
-  padding: 15px;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin: 10px 0;
-  border: 1px solid rgba(255,255,255,0.1);
-}
+.md-content :deep(pre) { background: #020617; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1); }
 .md-content :deep(code) { font-family: 'Fira Code', monospace; color: #a5b4fc; }
 
-/* Animation Utils (Manual & Animate.css Helper) */
+/* Animations */
 .shake-hover:hover { animation: shake 0.5s; }
 .pulse-hover:hover { animation: pulse 1s infinite; }
 .rubber-band-hover:hover { animation: rubberBand 1s; }
-
-/* Loading Dots */
-.dot-flashing {
-  position: relative;
-  width: 6px; height: 6px;
-  border-radius: 5px;
-  background-color: #9880ff;
-  color: #9880ff;
-  animation: dot-flashing 1s infinite linear alternate;
-  animation-delay: 0.5s;
-  margin: 0 10px;
-}
-.dot-flashing::before, .dot-flashing::after {
-  content: "";
-  display: inline-block;
-  position: absolute;
-  top: 0;
-}
+.dot-flashing { position: relative; width: 6px; height: 6px; border-radius: 5px; background-color: #9880ff; color: #9880ff; animation: dot-flashing 1s infinite linear alternate; animation-delay: 0.5s; margin: 0 10px; }
+.dot-flashing::before, .dot-flashing::after { content: ""; display: inline-block; position: absolute; top: 0; }
 .dot-flashing::before { left: -12px; width: 6px; height: 6px; border-radius: 5px; background-color: #9880ff; animation: dot-flashing 1s infinite alternate; animation-delay: 0s; }
 .dot-flashing::after { left: 12px; width: 6px; height: 6px; border-radius: 5px; background-color: #9880ff; animation: dot-flashing 1s infinite alternate; animation-delay: 1s; }
-
 @keyframes dot-flashing { 0% { background-color: #9880ff; } 50%, 100% { background-color: rgba(152, 128, 255, 0.2); } }
 </style>
