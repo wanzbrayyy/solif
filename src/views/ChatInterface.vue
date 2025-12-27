@@ -226,10 +226,8 @@ onMounted(async () => {
     userAvatar.value = user.avatar
   }
 
-  // Load history dari DB
   await refreshSavedChats()
 
-  // PERBAIKAN: Cek `route.params` sebelum akses `id`
   if (route.params && route.params.id) {
     await loadChat(route.params.id)
   }
@@ -239,11 +237,13 @@ onMounted(async () => {
   }
 })
 
-// Watcher untuk route
+// === PERBAIKAN BUG UTAMA ADA DISINI ===
 watch(() => route.params.id, (newId) => {
-  if (newId) {
+  // Hanya load chat jika ID yang baru berbeda dengan ID yang sedang aktif
+  // Ini mencegah re-load yang tidak perlu saat URL diupdate
+  if (newId && newId !== currentChatId.value) {
     loadChat(newId)
-  } else {
+  } else if (!newId) {
     resetView()
   }
 })
@@ -253,7 +253,7 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-// --- History & Routing Logic ---
+// --- History Logic ---
 const refreshSavedChats = async () => {
   try {
     const res = await api.getChats()
@@ -271,7 +271,7 @@ const refreshSavedChats = async () => {
 const createNewChat = () => {
   router.push({ 
     name: 'chat', 
-    params: { id: undefined }, // Pastikan param id kosong
+    params: { id: undefined },
     query: { model: selectedModel.value } 
   })
 }
@@ -290,14 +290,10 @@ const loadChat = async (id) => {
     if (chat.model) selectedModel.value = chat.model
     isSidebarOpen.value = false
     
-    // Perbaikan: Hanya replace jika URL belum sinkron
+    // Pastikan URL sinkron
     const currentRouteId = route.params ? route.params.id : null
     if (currentRouteId !== id) {
-      router.replace({ 
-        name: 'chat', 
-        params: { id: id },
-        query: { model: chat.model }
-      })
+      router.replace({ name: 'chat', params: { id: id }, query: { model: chat.model } })
     }
   } else {
     router.push('/chat')
@@ -308,29 +304,35 @@ const deleteChat = async (id) => {
   try {
     await api.deleteChat(id)
     savedChats.value = savedChats.value.filter(c => c.id !== id)
-    if (currentChatId.value === id) {
-      router.push('/chat')
-    }
+    if (currentChatId.value === id) router.push('/chat')
   } catch (e) {
     alert("Failed to delete chat")
   }
 }
 
+// Save Chat to DB
 const saveCurrentChat = async () => {
   try {
     const payload = {
-      id: currentChatId.value, // Bisa null
+      id: currentChatId.value,
       title: messages.value[0]?.text?.substring(0, 30) || 'New Chat',
       model: selectedModel.value,
       messages: messages.value
     }
     const res = await api.saveChat(payload)
     
-    // Jika ini chat baru, dapatkan ID dari backend dan update URL
+    // Jika ini chat baru, dapatkan ID dan update state & URL
     if (!currentChatId.value && res.data._id) {
       currentChatId.value = res.data._id
       router.replace({ params: { id: res.data._id }, query: { model: selectedModel.value } })
-      refreshSavedChats() // Update sidebar dengan chat baru
+      
+      // Update sidebar secara manual tanpa re-fetch
+      savedChats.value.unshift({
+        id: res.data._id,
+        title: payload.title,
+        messages: payload.messages,
+        model: payload.model
+      });
     }
   } catch(e) {
     console.warn("Auto-save failed")
@@ -363,7 +365,6 @@ const sendMessage = async () => {
   input.value = ''
   messages.value.push({ role: 'user', text: userText })
   
-  // Save user message ke DB
   await saveCurrentChat() 
 
   isLoading.value = true
@@ -428,7 +429,6 @@ const sendMessage = async () => {
       }
     }
     
-    // Save final AI response ke DB
     await saveCurrentChat()
 
   } catch (error) {

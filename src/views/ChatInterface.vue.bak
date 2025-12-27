@@ -41,7 +41,7 @@
         </div>
       </div>
 
-      <!-- SIDEBAR FOOTER DENGAN PROFILE -->
+      <!-- SIDEBAR FOOTER DENGAN PROFILE CARD TIER -->
       <div class="sidebar-footer">
         <div class="user-card-enhanced">
           <div class="user-info-row">
@@ -139,13 +139,10 @@
             
             <div class="msg-bubble-wrapper">
               <div class="msg-bubble">
-                <!-- ERROR DISPLAY (Jika request gagal) -->
                 <div v-if="msg.isError" class="error-content">
                   <i class="fa-solid fa-triangle-exclamation"></i> {{ msg.text }}
                 </div>
-                <!-- NORMAL TEXT -->
                 <div v-else class="md-content" v-html="renderMarkdown(msg.text)"></div>
-                
                 <span v-if="isLoading && idx === messages.length - 1 && msg.role === 'model'" class="cursor-blink">|</span>
               </div>
             </div>
@@ -193,7 +190,6 @@ const router = useRouter()
 const route = useRoute()
 
 // --- API Configuration ---
-// Gunakan key ini untuk model AI, token backend diambil otomatis dari localstorage
 const OPENROUTER_KEY = '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'
 
 // --- State ---
@@ -230,30 +226,34 @@ onMounted(async () => {
     userAvatar.value = user.avatar
   }
 
-  // Load History (Jika gagal, diam saja/log console)
+  // Load history dari DB
   await refreshSavedChats()
 
-  if (route.params.id) await loadChat(route.params.id)
-  if (route.query.model) {
+  // PERBAIKAN: Cek `route.params` sebelum akses `id`
+  if (route.params && route.params.id) {
+    await loadChat(route.params.id)
+  }
+  if (route.query && route.query.model) {
     const modelExists = availableModels.find(m => m.id === route.query.model)
     if (modelExists) selectedModel.value = route.query.model
   }
 })
 
+// Watcher untuk route
 watch(() => route.params.id, (newId) => {
-  if (newId) loadChat(newId)
-  else resetView()
+  if (newId) {
+    loadChat(newId)
+  } else {
+    resetView()
+  }
 })
 
 const handleLogout = () => {
-  // Logout Manual
-  localStorage.removeItem('isAuth')
-  localStorage.removeItem('token')
-  localStorage.removeItem('userData')
+  localStorage.clear()
   router.push('/login')
 }
 
-// --- History Logic ---
+// --- History & Routing Logic ---
 const refreshSavedChats = async () => {
   try {
     const res = await api.getChats()
@@ -264,12 +264,17 @@ const refreshSavedChats = async () => {
       model: c.model
     }))
   } catch (e) {
-    console.error("History sync failed (Auth issue or Network)", e)
-    // Tidak logout paksa, hanya tidak tampil history
+    console.error("History sync failed")
   }
 }
 
-const createNewChat = () => router.push({ name: 'chat', query: { model: selectedModel.value } })
+const createNewChat = () => {
+  router.push({ 
+    name: 'chat', 
+    params: { id: undefined }, // Pastikan param id kosong
+    query: { model: selectedModel.value } 
+  })
+}
 
 const resetView = () => {
   currentChatId.value = null
@@ -284,9 +289,17 @@ const loadChat = async (id) => {
     messages.value = chat.messages
     if (chat.model) selectedModel.value = chat.model
     isSidebarOpen.value = false
-    if (route.params.id !== id) router.replace({ name: 'chat', params: { id: id }, query: { model: chat.model } })
+    
+    // Perbaikan: Hanya replace jika URL belum sinkron
+    const currentRouteId = route.params ? route.params.id : null
+    if (currentRouteId !== id) {
+      router.replace({ 
+        name: 'chat', 
+        params: { id: id },
+        query: { model: chat.model }
+      })
+    }
   } else {
-    // Fallback jika belum terload atau invalid id
     router.push('/chat')
   }
 }
@@ -295,9 +308,32 @@ const deleteChat = async (id) => {
   try {
     await api.deleteChat(id)
     savedChats.value = savedChats.value.filter(c => c.id !== id)
-    if (currentChatId.value === id) router.push('/chat')
+    if (currentChatId.value === id) {
+      router.push('/chat')
+    }
   } catch (e) {
-    alert("Failed to delete. Auth error?")
+    alert("Failed to delete chat")
+  }
+}
+
+const saveCurrentChat = async () => {
+  try {
+    const payload = {
+      id: currentChatId.value, // Bisa null
+      title: messages.value[0]?.text?.substring(0, 30) || 'New Chat',
+      model: selectedModel.value,
+      messages: messages.value
+    }
+    const res = await api.saveChat(payload)
+    
+    // Jika ini chat baru, dapatkan ID dari backend dan update URL
+    if (!currentChatId.value && res.data._id) {
+      currentChatId.value = res.data._id
+      router.replace({ params: { id: res.data._id }, query: { model: selectedModel.value } })
+      refreshSavedChats() // Update sidebar dengan chat baru
+    }
+  } catch(e) {
+    console.warn("Auto-save failed")
   }
 }
 
@@ -327,22 +363,8 @@ const sendMessage = async () => {
   input.value = ''
   messages.value.push({ role: 'user', text: userText })
   
-  // Try Save Init (Silently fail if auth error, app continues)
-  try {
-    const res = await api.saveChat({
-       id: currentChatId.value,
-       title: messages.value[0].text.substring(0, 30),
-       model: selectedModel.value,
-       messages: messages.value
-    })
-    if (!currentChatId.value && res.data._id) {
-       currentChatId.value = res.data._id
-       router.replace({ params: { id: res.data._id } })
-       refreshSavedChats()
-    }
-  } catch(e) {
-    console.warn("Auto-save init failed (Auth/Network issue). Chat continuing locally.")
-  }
+  // Save user message ke DB
+  await saveCurrentChat() 
 
   isLoading.value = true
   isThinking.value = true 
@@ -353,7 +375,6 @@ const sendMessage = async () => {
       .filter(m => !m.isError)
       .map(msg => ({ role: msg.role === 'model' ? 'assistant' : 'user', content: msg.text }))
 
-    // Request ke AI Model (Independent dari Backend Database)
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -407,19 +428,13 @@ const sendMessage = async () => {
       }
     }
     
-    // Save Final (Silently fail if auth error)
-    await api.saveChat({
-       id: currentChatId.value,
-       title: messages.value[0].text.substring(0, 30),
-       model: selectedModel.value,
-       messages: messages.value
-    })
+    // Save final AI response ke DB
+    await saveCurrentChat()
 
   } catch (error) {
     isThinking.value = false
     let errorText = `Error: ${error.message}`
     
-    // Tampilkan Error di Bubble, BUKAN Redirect
     const lastMsg = messages.value[messages.value.length - 1]
     if (lastMsg && lastMsg.role === 'model' && !lastMsg.text) {
       lastMsg.text = errorText
@@ -435,19 +450,23 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
+/* Vibe: Clean, Dark, Lowercase, Responsive */
 .chat-layout { display: flex; height: 100vh; background: #0f172a; color: #e2e8f0; position: relative; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; text-transform: lowercase; }
 
-/* Sidebar */
+/* === SIDEBAR === */
 .sidebar { width: 280px; background: #020617; border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; position: fixed; height: 100%; z-index: 100; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .sidebar.open { transform: translateX(0); }
 .sidebar-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 99; }
 @media (min-width: 1024px) { .sidebar { position: relative; transform: translateX(0); } .sidebar-overlay { display: none; } .menu-trigger { display: none; } }
 
+/* Header & Cool Close Button */
 .sidebar-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; letter-spacing: 1px; }
 .close-btn-cool { width: 32px; height: 32px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; color: #94a3b8; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
 .close-btn-cool:hover { background: #ef4444; color: white; transform: rotate(90deg); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
 @media (min-width: 1024px) { .close-btn-cool { display: none; } }
 
+/* Chat List */
+.new-chat-btn-wrapper { padding: 0 15px; }
 .new-chat-btn { width: 100%; background: #6366f1; color: white; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; margin-bottom: 20px; }
 .history-list { flex: 1; padding: 10px; overflow-y: auto; }
 .history-label { font-size: 0.75rem; color: #64748b; margin-bottom: 10px; padding-left: 10px; text-transform: uppercase; letter-spacing: 1px; }
@@ -456,10 +475,11 @@ const sendMessage = async () => {
 .history-item:hover { background: rgba(255,255,255,0.05); }
 .history-item.active { background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.2); }
 .chat-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.delete-chat-btn { background: none; color: #475569; opacity: 0; transition: 0.2s; font-size: 0.8rem; }
+.delete-chat-btn { background: none; color: #475569; opacity: 0; transition: 0.2s; font-size: 0.8rem; border: none; }
 .history-item:hover .delete-chat-btn { opacity: 1; }
 .delete-chat-btn:hover { color: #ef4444; }
 
+/* Responsive Sidebar Footer */
 .sidebar-footer { padding: 15px; border-top: 1px solid rgba(255,255,255,0.05); background: #020617; }
 .user-card-enhanced { background: #0f172a; border-radius: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.05); }
 .user-info-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -474,10 +494,12 @@ const sendMessage = async () => {
 .action-btn-small:hover { background: rgba(255,255,255,0.1); color: white; }
 .action-btn-small.logout:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
+/* === MAIN CONTENT === */
 .main-content { flex: 1; display: flex; flex-direction: column; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); width: 100%; }
 .top-bar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); z-index: 10; width: 100%; box-sizing: border-box; }
-.menu-trigger { font-size: 1.2rem; background: transparent; color: white; margin-right: 15px; }
+.menu-trigger { font-size: 1.2rem; background: transparent; color: white; margin-right: 15px; border: none; }
 
+/* Model Selector */
 .model-dropdown-wrapper { position: relative; }
 .model-selector-btn { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.08); padding: 8px 16px; border-radius: 20px; color: #cbd5e1; font-size: 0.9rem; transition: 0.2s; border: 1px solid transparent; min-width: 160px; justify-content: space-between; }
 .model-selector-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.1); }
@@ -491,6 +513,7 @@ const sendMessage = async () => {
 .model-id { font-size: 0.7rem; color: #64748b; font-family: monospace; margin-top: 2px; }
 .fa-check { color: #22c55e; }
 
+/* Chat Area & RESPONSIVENESS FIX */
 .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
 .message-list { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 20px; }
 .msg-row { display: flex; gap: 15px; width: 100%; }
@@ -498,25 +521,27 @@ const sendMessage = async () => {
 .msg-avatar { width: 36px; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .model .msg-avatar { background: #6366f1; color: white; }
 .user .msg-avatar { background: #475569; color: white; }
-
 .msg-bubble-wrapper { max-width: 85%; min-width: 0; }
 .msg-bubble { background: #1e293b; padding: 15px 20px; border-radius: 12px; line-height: 1.6; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.05); overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
 .user .msg-bubble { background: #334155; border-color: transparent; }
 .error-content { color: #ef4444; font-weight: 500; display: flex; gap: 8px; align-items: center; }
 
+/* Markdown & Code */
 .md-content :deep(p) { margin-bottom: 10px; }
 .md-content :deep(p:last-child) { margin-bottom: 0; }
 .md-content :deep(pre) { background: #020617; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1); max-width: 100%; }
 .md-content :deep(code) { font-family: 'Fira Code', monospace; color: #a5b4fc; }
 
+/* Input */
 .input-area { padding: 20px; background: #0f172a; display: flex; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
 .input-box { width: 100%; max-width: 800px; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 10px; transition: 0.3s; }
 .input-box:focus-within { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 textarea { flex: 1; background: transparent; border: none; resize: none; color: white; padding: 10px 0; min-height: 24px; }
-.send-btn { background: #6366f1; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
+.send-btn { background: #6366f1; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; border: none; }
 .send-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
 .credits { margin-top: 10px; font-size: 0.7rem; color: #64748b; }
 
+/* Animations */
 .cursor-blink { display: inline-block; width: 6px; background: #a855f7; animation: blink 1s step-end infinite; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .dot-flashing { position: relative; width: 6px; height: 6px; border-radius: 5px; background-color: #9880ff; animation: dot-flashing 1s infinite linear alternate; animation-delay: 0.5s; margin: 0 10px; }
@@ -527,6 +552,6 @@ textarea { flex: 1; background: transparent; border: none; resize: none; color: 
 .empty-state { margin-top: 5vh; text-align: center; max-width: 600px; width: 100%; }
 .ai-avatar { width: 70px; height: 70px; background: white; color: #6366f1; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 0 30px rgba(255,255,255,0.1); }
 .suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px; }
-.card-sug { background: #1e293b; border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; color: #cbd5e1; text-align: left; display: flex; gap: 10px; align-items: center; transition: 0.2s; }
+.card-sug { background: #1e293b; border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; color: #cbd5e1; text-align: left; display: flex; gap: 10px; align-items: center; transition: 0.2s; border: none; }
 .card-sug:hover { background: #334155; transform: translateY(-3px); }
 </style>
