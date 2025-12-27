@@ -168,6 +168,12 @@ onMounted(() => {
 const handleFile = (e) => {
   const file = e.target.files[0]
   if (file) {
+    // Cek ukuran file (Max 4MB disarankan untuk Base64 string agar aman)
+    if (file.size > 4 * 1024 * 1024) {
+      alert("File size too large! Please choose an image under 4MB.");
+      return;
+    }
+
     const reader = new FileReader()
     reader.onload = (e) => {
       form.value.avatar = e.target.result // Simpan string Base64
